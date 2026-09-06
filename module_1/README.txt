@@ -1,4 +1,4 @@
-JHU Software Concepts Website
+Module 1 Assignment: Personal Website
 =============================
 
 Run the site on Windows
