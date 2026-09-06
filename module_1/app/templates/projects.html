@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+    <title>Projects | Sean Bae</title>
+</head>
+<body>
+    <header class="site-header">
+        <a class="site-logo" href="{{ url_for('pages.home') }}" aria-label="Sean Bae home">
+            <span class="site-logo__mark">SB</span>
+        </a>
+        <nav aria-label="Main navigation">
+            <a href="{{ url_for('pages.home') }}">Home</a>
+            <a href="{{ url_for('pages.contact') }}">Contact</a>
+            <a class="active" href="{{ url_for('pages.projects') }}" aria-current="page">Projects</a>
+        </nav>
+    </header>
+
+    <main class="page-content projects-page">
+        <p class="eyebrow">JHU - Software Concepts</p>
+        <h1>Projects that turn ideas into action</h1>
+
+        <section class="project-list" aria-label="Project list">
+            <article class="project-card">
+                <div class="project-card__number">m.01</div>
+                <div>
+                    <p class="project-card__type">Python</p>
+                    <h2>Module 1 Personal Website</h2>
+                    <p>
+                        A Flask-based personal portfolio that introduces my background,
+                        professional experience, and software concepts work. The site
+                        uses Flask's <code>render_template()</code> function to render
+                        Jinja2 HTML templates, along with a Flask blueprint for page
+                        routes, shared navigation, static assets, and CSS for layout,
+                        color, spacing, and typography.
+                    </p>
+                    <p class="project-card__meta"><strong>Due date:</strong> September 6, 2026</p>
+                    <a class="project-link" href="https://github.com/pgozgo/jhu_software_concepts/tree/1802d9b083de42a6c64e0de27d1f5d3d9981c849/module_1" target="_blank" rel="noopener noreferrer">GitHub - Module 1 Project</a>
+                </div>
+            </article>
+        </section>
+    </main>
+</body>
+</html>

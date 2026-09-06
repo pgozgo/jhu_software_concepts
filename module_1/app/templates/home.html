@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+    <title>Sean Bae | Web Portfolio</title>
+</head>
+<body>
+    <header class="site-header">
+        <a class="site-logo" href="{{ url_for('pages.home') }}" aria-label="Sean Bae home">
+            <span class="site-logo__mark">SB</span>
+        </a>
+        <nav aria-label="Main navigation">
+            <a class="active" href="{{ url_for('pages.home') }}" aria-current="page">Home</a>
+            <a href="{{ url_for('pages.contact') }}">Contact</a>
+            <a href="{{ url_for('pages.projects') }}">Projects</a>
+        </nav>
+    </header>
+    <main class="profile">
+        <section class="profile__content" aria-labelledby="profile-name">
+            <p class="eyebrow">Personal profile</p>
+            <h1 id="profile-name">Sean Bae</h1>
+            <p class="position">Sr. Lead Technical Artist</p>
+            <div class="bio">
+                <h2>About me</h2>
+                <p>
+                    Sean (Sungwoo) Bae is a Sr. Lead Technical Artist with nearly 20 years of experience in 
+                    the AAA game industry, specializing in character technology, rigging, animation, and technical art tools. 
+                    Originally from South Korea, Sean has built his career at the intersection of art, computer science, 
+                    and interactive technology.<br><br>
+                    He has contributed to internationally recognized titles and franchises including God of War, Titanfall, 
+                    Star Wars, Avatar, Marvel Strike Force, and multiple Call of Duty titles, working with studios such as 
+                    Activision Blizzard/Treyarch, EA/Respawn, Sony Interactive Entertainment, Riot Games, and FOXNEXT.<br><br>
+                    His professional interests include AI-assisted content creation, procedural rigging, animation systems, 
+                    and digital production tools. Sean is passionate about connecting academic learning with real-world game 
+                    development and sharing practical industry knowledge with the next generation of artists, technical artists, 
+                    and game developers.
+                </p>
+            </div>
+        </section>
+
+        <figure class="profile__photo">
+            <img src="{{ url_for('static', filename='profile_sb_26.png') }}">
+            <figcaption>Sean Bae</figcaption>
+        </figure>
+    </main>
+</body>
+</html>
