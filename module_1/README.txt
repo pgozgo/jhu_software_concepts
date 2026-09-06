@@ -3,6 +3,8 @@ Module 1 Assignment: Personal Website
 
 Run the site on Windows
 -----------------------
+HTTPS - https://github.com/pgozgo/jhu_software_concepts.git
+SSH - git@github.com:pgozgo/jhu_software_concepts.git
 
 1. Start the Flask website from the `module_1` directory:
 
