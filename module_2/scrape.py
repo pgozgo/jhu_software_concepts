@@ -533,6 +533,6 @@ if __name__ == "__main__":
         save_data(records, output_path)
 
 # how to run:
-# python scrape.py --pages 1500 --target_row 30000
+# python scrape.py --pages 2500 --target_row 50000
 # python scrape.py --pages 5 --target_row 100 --output applicant_data.json
 # python scrape.py --file saved_page.html --output applicant_data.json

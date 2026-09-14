@@ -100,15 +100,18 @@ Functions in clean.py:
 2. Page Yields & Target Row Logic:
    Each HTML survey page yields ~20 applicant entries.
    - For 100 entries: Set --pages 5 --target_row 100.
-   - THe assignment for 30,000 entries: Equivalent to ~1,500 pages. The --target_row argument will automatically stop scraping once the target count is reached.
+   - For 50,000 entries: Set --pages 2500 --target_row 50000. The --target_row argument will automatically stop scraping once the target count is reached.
 
 3. Clean Schema & Null/Empty Omission:
    Fields containing null or empty string values ("") are automatically removed
    from the output JSON to ensure clean, lightweight records.
 
-4. LLM Service Fallback:
+4. LLM Service & Standardization Notes:
    If the local LLM microservice (llm_hosting/app.py) is offline, clean.py
    automatically falls back to rule-based regex and dictionary standardization.
+   - Canonical Lists: Located in llm_hosting/canon_universities.txt and canon_programs.txt.
+   - Post-Processing: Uses difflib fuzzy matching and regex rules to normalize university abbreviations (e.g. "JHU" -> "Johns Hopkins University").
+   - Edge Cases & Imperfections: Non-English institution names, obscure program abbreviations, or entries where school name is omitted in raw input may return "unknown" or remain unexpanded.
 
 --------------------------------------------------------------------------------
 6. ROBOTS.TXT COMPLIANCE & EVIDENCE
