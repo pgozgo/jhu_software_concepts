@@ -10,6 +10,31 @@ import time
 import requests
 from scrape import clean_text, _format_seconds
 
+
+def print_remaining_time(processed_items, total_items, start_time):
+    # Print elapsed, remaining, and estimated total processing time.
+    elapsed_seconds = time.time() - start_time
+    if processed_items == 0:
+        print(
+            f"[Progress] 0/{total_items} entries | "
+            "Elapsed: 00m 00s | Remaining: Unknown | Estimated total: Unknown",
+            flush=True,
+        )
+        return
+
+    average_seconds = elapsed_seconds / processed_items
+    remaining_seconds = max(0, total_items - processed_items) * average_seconds
+    estimated_total_seconds = elapsed_seconds + remaining_seconds
+
+    print(
+        f"[Progress] {processed_items}/{total_items} entries | "
+        f"Elapsed: {_format_seconds(elapsed_seconds)} | "
+        f"Remaining: {_format_seconds(remaining_seconds)} | "
+        f"Estimated total: {_format_seconds(estimated_total_seconds)}",
+        flush=True,
+    )
+
+
 class DataCleaner: # Handles cleaning and standardization of applicant data using LLM
     # These patterns are used to recognize and standardize common university abbreviations in the dataset for LLM processing.
     # # (?i) makes the pattern case-insensitive, ^ asserts the start of the string, $ asserts the end of the string
@@ -92,8 +117,8 @@ class DataCleaner: # Handles cleaning and standardization of applicant data usin
             univ = re.sub(r"\bOf\b", "of", univ.title())
 
         return {
-            "llm-generated-program": prog,
-            "llm-generated-university": univ,
+            "llm_generated_program": prog,
+            "llm_generated_university": univ,
         }
 
     # Clean with LLM
@@ -114,8 +139,14 @@ class DataCleaner: # Handles cleaning and standardization of applicant data usin
                     rows = result.get("rows", [])
                     if rows:
                         res = {
-                            "llm-generated-program": rows[0].get("llm-generated-program", ""),
-                            "llm-generated-university": rows[0].get("llm-generated-university", ""),
+                            "llm_generated_program": rows[0].get(
+                                "llm_generated_program",
+                                rows[0].get("llm-generated-program", ""),
+                            ),
+                            "llm_generated_university": rows[0].get(
+                                "llm_generated_university",
+                                rows[0].get("llm-generated-university", ""),
+                            ),
                         }
                         self._cache[program_text] = res
                         return res
@@ -126,12 +157,80 @@ class DataCleaner: # Handles cleaning and standardization of applicant data usin
         self._cache[program_text] = res
         return res
 
+    def _standardize_batch(self, program_texts, start_time, batch_size=32):
+        # Standardize unique programs in batches to avoid one HTTP request per row.
+        unique_programs = list(dict.fromkeys(program_texts))
+        if not unique_programs or not self._check_endpoint():
+            return
+
+        for start in range(0, len(unique_programs), batch_size):
+            batch = unique_programs[start:start + batch_size]
+            try:
+                response = self._session.post(
+                    self.llm_endpoint,
+                    json={"rows": [{"program": text} for text in batch]},
+                    headers={"Content-Type": "application/json"},
+                    timeout=60.0,
+                )
+                response.raise_for_status()
+                result_rows = response.json().get("rows", [])
+
+                for program_text, result in zip(batch, result_rows):
+                    program_value = result.get(
+                        "llm_generated_program",
+                        result.get("llm-generated-program", ""),
+                    )
+                    university_value = result.get(
+                        "llm_generated_university",
+                        result.get("llm-generated-university", ""),
+                    )
+                    self._cache[program_text] = {
+                        "llm_generated_program": program_value,
+                        "llm_generated_university": university_value,
+                    }
+
+                for program_text in batch[len(result_rows):]:
+                    self._cache[program_text] = self._standardize_with_rules(program_text)
+
+                processed_programs = min(start + batch_size, len(unique_programs))
+                elapsed_seconds = time.time() - start_time
+                average_seconds = elapsed_seconds / processed_programs
+                remaining_seconds = (
+                    len(unique_programs) - processed_programs
+                ) * average_seconds
+                print(
+                    f"[Cleaning] Standardized {processed_programs}/{len(unique_programs)} unique programs | "
+                    f"Elapsed: {_format_seconds(elapsed_seconds)} | "
+                    f"Estimated remaining: {_format_seconds(remaining_seconds)} | "
+                    f"Estimated total: {_format_seconds(elapsed_seconds + remaining_seconds)}",
+                    flush=True,
+                )
+            except (requests.RequestException, ValueError, KeyError) as error:
+                self._endpoint_available = False
+                print(
+                    f"[Cleaning] Batch standardization failed ({error}); using rules fallback.",
+                    flush=True,
+                )
+                return
+
     def clean_dataset(self, dataset): # Clean the entire dataset using the LLM and rules
         cleaned_rows = []
         total_items = len(dataset)
         start_time = time.time()
 
+        print(f"[Cleaning] Starting {total_items} entries.", flush=True)
+        if total_items == 0:
+            print_remaining_time(0, 0, start_time)
+            return cleaned_rows
+
+        program_texts = [item.get("program") or "" for item in dataset]
+        self._standardize_batch(program_texts, start_time)
+
         for idx, item in enumerate(dataset, 1):
+            print(
+                f"[Cleaning] Processing entry {idx}/{total_items}...",
+                flush=True,
+            )
             row = {}
             for k, v in item.items():
                 if isinstance(v, str):
@@ -146,14 +245,14 @@ class DataCleaner: # Handles cleaning and standardization of applicant data usin
                 program_text = ""
             std_fields = self._clean_record(program_text)
 
-            prog_val = clean_text(std_fields.get("llm-generated-program"))
-            univ_val = clean_text(std_fields.get("llm-generated-university"))
+            prog_val = clean_text(std_fields.get("llm_generated_program"))
+            univ_val = clean_text(std_fields.get("llm_generated_university"))
 
             if prog_val and prog_val != "unknown":
-                row["llm-generated-program"] = prog_val
+                row["llm_generated_program"] = prog_val
 
             if univ_val and univ_val != "unknown":
-                row["llm-generated-university"] = univ_val
+                row["llm_generated_university"] = univ_val
 
             # Remove items with null or empty string values
             final_row = {}
@@ -163,21 +262,8 @@ class DataCleaner: # Handles cleaning and standardization of applicant data usin
 
             cleaned_rows.append(final_row)
 
-            # Log progress with elapsed and remaining time
-            elapsed_sec = time.time() - start_time
-            avg_time_per_item = elapsed_sec / idx
-            remaining_items = total_items - idx
-            remaining_sec = remaining_items * avg_time_per_item
-
-            elapsed_str = _format_seconds(elapsed_sec)
-            remaining_str = _format_seconds(remaining_sec)
-
-            log_interval = max(10, total_items // 20)
-            if idx == total_items or idx % log_interval == 0 or total_items <= 20:
-                print(
-                    f"[Cleaning] Processed {idx}/{total_items} entries | "
-                    f"Elapsed: {elapsed_str} | Est. Remaining ({remaining_items} left): {remaining_str}"
-                )
+            # Print timing details after every completed entry.
+            print_remaining_time(idx, total_items, start_time)
 
         return cleaned_rows
 

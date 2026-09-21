@@ -117,6 +117,14 @@ class GradCafeScraper:
             full_url = f"{full_url}?{query_string}"
         return full_url
 
+    def _next_page_url(self, html_content):
+        # Grad Cafe now exposes cursor-based pagination through a Next link.
+        soup = BeautifulSoup(html_content, "html.parser")
+        for link in soup.find_all("a", href=True):
+            if link.get_text(" ", strip=True).lower() == "next":
+                return urllib.parse.urljoin(self.base_url, link["href"])
+        return None
+
     def _fetch_html(self, url): # Fetch HTML content from the given URL
         """Fetch page HTML with urllib3; stops immediately on blocks/errors."""
         try:
@@ -258,42 +266,49 @@ class GradCafeScraper:
             # US / International
             nat_match = RE_NAT.search(full_entry_text)
             if nat_match:
-                record["US/International"] = clean_text(nat_match.group(1))
+                record["us_or_international"] = clean_text(nat_match.group(1))
             elif "international" in full_entry_text.lower():
-                record["US/International"] = "International"
+                record["us_or_international"] = "International"
             elif "american" in full_entry_text.lower():
-                record["US/International"] = "American"
+                record["us_or_international"] = "American"
             elif RE_OTHER.search(full_entry_text):
-                record["US/International"] = "Other"
+                record["us_or_international"] = "Other"
             else:
-                record["US/International"] = None
+                record["us_or_international"] = None
 
             # Degree
             deg_match = RE_DEGREE.search(full_entry_text)
             if deg_match:
                 val = deg_match.group(1)
                 if val.lower() in ("phd", "doctorate"):
-                    record["Degree"] = "PhD"
+                    record["degree"] = "PhD"
                 elif val.lower() in ("masters", "ms", "ma"):
-                    record["Degree"] = "Masters"
+                    record["degree"] = "Masters"
                 else:
-                    record["Degree"] = clean_text(val)
+                    record["degree"] = clean_text(val)
             else:
-                record["Degree"] = None
+                record["degree"] = None
 
             # GPA
             gpa_match = RE_GPA.search(full_entry_text)
             if gpa_match:
-                record["GPA"] = f"GPA {gpa_match.group(1)}"
+                record["gpa"] = float(gpa_match.group(1))
             else:
-                record["GPA"] = None
+                record["gpa"] = None
 
             # GRE
             gre_match = RE_GRE.search(full_entry_text)
             if gre_match:
-                record["GRE"] = f"GRE {gre_match.group(1)}"
+                record["gre"] = float(gre_match.group(1))
             else:
-                record["GRE"] = None
+                record["gre"] = None
+
+            # GRE verbal and analytical writing scores
+            gre_v_match = re.search(r"\bGRE\s*V\s*[:\s]?\s*(\d{3})\b", full_entry_text, re.I)
+            record["gre_v"] = float(gre_v_match.group(1)) if gre_v_match else None
+
+            gre_aw_match = re.search(r"\bGRE\s*AW\s*[:\s]?\s*(\d(?:\.\d{1,2})?)\b", full_entry_text, re.I)
+            record["gre_aw"] = float(gre_aw_match.group(1)) if gre_aw_match else None
 
             # Date Added
             date_match = RE_DATE_FULL.search(full_entry_text)
@@ -387,6 +402,23 @@ def _format_seconds(seconds):
 def scrape_data(max_pages=1, target_row=100, html_file=None, html_dir=None):
     scraper = GradCafeScraper()
     records = []
+    seen_record_keys = set()
+
+    def _record_key(record):
+        # Result URLs identify records reliably; use all fields as a fallback.
+        if record.get("url"):
+            return record["url"]
+        return json.dumps(record, sort_keys=True, ensure_ascii=False)
+
+    def _add_unique_records(parsed_records):
+        new_records = []
+        for record in parsed_records:
+            key = _record_key(record)
+            if key not in seen_record_keys:
+                seen_record_keys.add(key)
+                new_records.append(record)
+        records.extend(new_records)
+        return new_records
 
     # Case A: Saved HTML file - in case you have previously downloaded the page
     if html_file:
@@ -395,7 +427,7 @@ def scrape_data(max_pages=1, target_row=100, html_file=None, html_dir=None):
             f = open(html_file, "r", encoding="utf-8", errors="ignore")
             parsed = scraper.parse_admissions_data(f.read())
             f.close()
-            records.extend(parsed)
+            _add_unique_records(parsed)
             elapsed_sec = time.time() - start_time
             print(f"[File] Extracted {len(parsed)} rows from {html_file} in {_format_seconds(elapsed_sec)}.")
         else:
@@ -422,7 +454,7 @@ def scrape_data(max_pages=1, target_row=100, html_file=None, html_dir=None):
                 hf = future_to_file[future]
                 try:
                     parsed = future.result()
-                    records.extend(parsed)
+                    new_records = _add_unique_records(parsed)
                 except Exception as e:
                     print(f"[Batch Error] Failed to parse {os.path.basename(hf)}: {e}")
                     parsed = []
@@ -433,7 +465,7 @@ def scrape_data(max_pages=1, target_row=100, html_file=None, html_dir=None):
 
                 print(
                     f"[Batch] Processed {os.path.basename(hf)} ({idx}/{len(html_files)}). "
-                    f"Yielded {len(parsed)} entries. Total: {len(records)} | "
+                    f"Yielded {len(new_records)} new entries. Total: {len(records)} | "
                     f"Elapsed: {_format_seconds(elapsed_sec)} | Est. Remaining: {_format_seconds(remaining_sec)}"
                 )
 
@@ -445,8 +477,8 @@ def scrape_data(max_pages=1, target_row=100, html_file=None, html_dir=None):
             return []
 
         start_time = time.time()
+        url = scraper._build_url(page=1)
         for page in range(1, max_pages + 1):
-            url = scraper._build_url(page=page)
             html = scraper._fetch_html(url)
 
             if not html:
@@ -458,7 +490,14 @@ def scrape_data(max_pages=1, target_row=100, html_file=None, html_dir=None):
                 print(f"[Notice] No data found on page {page}.")
                 break
 
-            records.extend(page_records)
+            new_page_records = _add_unique_records(page_records)
+
+            if not new_page_records:
+                print(
+                    f"[Halt] Page {page} contained no new result URLs. "
+                    "The site may be returning the same page repeatedly."
+                )
+                break
 
             elapsed_sec = time.time() - start_time
             pages_done = page
@@ -484,7 +523,8 @@ def scrape_data(max_pages=1, target_row=100, html_file=None, html_dir=None):
             remaining_str = _format_seconds(remaining_sec)
 
             print(
-                f"[Progress] Page {page}/{max_pages} yielded {len(page_records)} entries. "
+                f"[Progress] Page {page}/{max_pages} yielded {len(new_page_records)} new entries "
+                f"({len(page_records)} parsed). "
                 f"Total rows: {len(records)} | Elapsed: {elapsed_str} | Est. Remaining ({remaining_pages} pages left): {remaining_str}"
             )
 
@@ -492,10 +532,16 @@ def scrape_data(max_pages=1, target_row=100, html_file=None, html_dir=None):
                 print(f"[Goal Reached] Collected {len(records)} entries in {elapsed_str}.")
                 break
 
+            next_url = scraper._next_page_url(html)
+            if not next_url:
+                print(f"[Halt] No Next link found after page {page}.")
+                break
+
             if page < max_pages:
                 wait_time = random.uniform(2.0, 4.0)
-                print(f"[Polite] Waiting {wait_time:.1f}s ...")
+                print(f"[Polite] Waiting {wait_time:.1f}s ... (Ctrl+C to interrupt)")
                 time.sleep(wait_time)
+                url = next_url
 
     if target_row and len(records) > target_row:
         records = records[:target_row]
