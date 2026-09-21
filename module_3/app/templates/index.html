@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="intro">
+    <div class="intro-header">
+        <div>
+            <p class="eyebrow">Module 3 / Database analysis</p>
+            <h1>Applicant analysis</h1>
+        </div>
+        <div class="action-buttons">
+            <form method="post" action="{{ url_for('pull_data') }}" class="pull-data-form">
+                <button type="submit" class="pull-data-button" {% if pull_running %}disabled{% endif %}>
+                    {% if pull_running %}Pull Data (running...){% else %}Pull Data{% endif %}
+                </button>
+            </form>
+            <form method="post" action="{{ url_for('update_analysis') }}" class="update-analysis-form">
+                <button type="submit" class="update-analysis-button">Update Analysis</button>
+            </form>
+        </div>
+    </div>
+    <p class="pull-data-description">
+        Pull Data checks Grad Café for newly submitted application results and adds new
+        records to the database. Depending on the amount of new data available, this may
+        take some time.
+    </p>
+</section>
+
+<section class="section-block split-section">
+    <div>
+        <p class="eyebrow">Question 10</p>
+        <h2>University with highest applicant count in Fall 2026 PhD Computer Science</h2>
+        <div class="university-list">
+            {% if q10_university_counts %}
+            {% set university, count = q10_university_counts[0] %}
+            <div class="university-row"><span>{{ university }}</span><strong>{{ count }}</strong></div>
+            {% else %}
+            <p class="empty-state">No matching university records.</p>
+            {% endif %}
+        </div>
+    </div>
+    <div class="original-question">
+        <p class="eyebrow">Question 11 - Average scores for Fall 2026 Master's Computer Science applicants</p>
+        <h2>Master's Computer Science averages</h2>
+        <div class="result-row"><span>GPA</span><strong>{{ q11_averages[0] }}</strong></div>
+        <div class="result-row"><span>GRE Quantitative</span><strong>{{ q11_averages[1] }}</strong></div>
+        <div class="result-row"><span>GRE Verbal</span><strong>{{ q11_averages[2] }}</strong></div>
+        <div class="result-row"><span>GRE Analytical Writing</span><strong>{{ q11_averages[3] }}</strong></div>
+    </div>
+</section>
+{% endblock %}
