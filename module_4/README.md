@@ -90,7 +90,7 @@ python -m sphinx -b html -W module_4/docs/source module_4/docs/build/html
 The local landing page is [`docs/build/html/index.html`](docs/build/html/index.html).
 The root [`.readthedocs.yaml`](../.readthedocs.yaml) configures the Read the Docs
 build. Once this repository is registered as a Read the Docs project, the published
-site is available at [jhu-software-concepts.readthedocs.io](https://jhu-software-concepts.readthedocs.io/en/latest/).
+site is available at https://module-4-the-grad-cafe-analytics-doc-test.readthedocs.io/en/latest/
 
 ## Local run
 
