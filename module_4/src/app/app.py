@@ -1,6 +1,8 @@
-"""
-Module 3: Flask Application for Applicant Analysis
-Provides a web interface to view analysis of applicant data stored in the PostgreSQL database.
+"""Flask web application for live Grad Cafe applicant analysis.
+
+The application reads PostgreSQL through ``DATABASE_URL``. ``POST /pull-data``
+starts ``pull_data.py`` in a subprocess; ``POST /update-analysis`` only refreshes
+the analysis view and never starts a scrape.
 """
 
 import os
@@ -23,6 +25,14 @@ _pull_lock = threading.Lock()
 
 @app.after_request
 def disable_browser_cache(response):
+    """Prevent browsers from caching live analysis responses.
+
+    Args:
+        response (flask.Response): Response produced by a Flask route.
+
+    Returns:
+        flask.Response: The same response with no-cache headers added.
+    """
     # Analysis values must always be read again from PostgreSQL.
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
@@ -30,6 +40,11 @@ def disable_browser_cache(response):
 
 
 def _pull_in_progress():
+    """Return whether the current pull subprocess is still running.
+
+    Returns:
+        bool: ``True`` while the process has no exit code; otherwise ``False``.
+    """
     global _pull_process
     with _pull_lock:
         return _pull_process is not None and _pull_process.poll() is None
@@ -37,6 +52,12 @@ def _pull_in_progress():
 
 @app.route('/pull-data', methods=['POST'])
 def pull_data():
+    """Start the background data pull unless another pull is running.
+
+    Returns:
+        flask.Response | tuple[str, int]: Redirect to the analysis page when a
+        pull starts, or a message with HTTP 409 when the app is already busy.
+    """
     global _pull_process
     with _pull_lock:
         if _pull_process is not None and _pull_process.poll() is None:
@@ -52,6 +73,12 @@ def pull_data():
 
 @app.route('/update-analysis', methods=['POST'])
 def update_analysis():
+    """Refresh the analysis page without starting a scrape.
+
+    Returns:
+        flask.Response | tuple[str, int]: Redirect when idle, or a message with
+        HTTP 409 while a pull subprocess is running.
+    """
     # This never triggers a scrape; it only re-runs the analysis queries below.
     if _pull_in_progress():
         return (
@@ -65,6 +92,16 @@ def update_analysis():
 
 @app.route('/')
 def index():
+    """Query PostgreSQL and render the applicant analysis page.
+
+    Returns:
+        flask.Response: Rendered HTML containing the percentage, Question 10,
+        and Question 11 results.
+
+    Raises:
+        RuntimeError: If ``DATABASE_URL`` is not configured.
+        psycopg.Error: If a database query fails.
+    """
     database_url = os.getenv("DATABASE_URL")
     if not database_url:
         raise RuntimeError("DATABASE_URL must be set before starting the app")

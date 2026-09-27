@@ -1,10 +1,8 @@
-"""
-Module 2 - Grad Cafe Web Scraper : scrape.py
-Assignment Steps:
-1. Confirm robots.txt permits scraping (robots.txt).
-2. Use urllib.parse to construct URLs and urllib3 to request data from Grad Cafe.
-3. Use BeautifulSoup / regex / string search to parse admissions data.
-Output: applicant_data.json
+"""Scrape, parse, and optionally save Grad Cafe admissions results.
+
+The scraper supports live HTTP retrieval, a saved HTML file, or a directory of
+saved HTML pages. Live requests check ``robots.txt`` first and follow the site's
+Next link when present.
 """
 
 import argparse
@@ -49,7 +47,28 @@ RE_COMMENT_IGNORE = re.compile(r"^(Accepted|Rejected|Wait\s*listed|Spring|Fall|S
 
 # Grad Cafe Web Scraper Class - Scrapes applicant admissions data from The Grad Cafe
 class GradCafeScraper:
+    """Fetch Grad Cafe pages and parse applicant rows.
+
+    Args:
+        url (str): Base URL for the Grad Cafe site.
+
+    Attributes:
+        base_url (str): Normalized site origin without a trailing slash.
+        survey_path (str): Path to the admissions survey.
+        robots_url (str): URL used to retrieve the site's robots rules.
+        headers (dict[str, str]): HTTP request headers.
+        http (urllib3.PoolManager): HTTP connection pool used for requests.
+    """
+
     def __init__(self, url="https://www.thegradcafe.com"):
+        """Initialize URL paths, browser-like headers, and an HTTP pool.
+
+        Args:
+            url (str): Grad Cafe site origin.
+
+        Returns:
+            None
+        """
         self.base_url = url.rstrip("/") # Remove trailing slash
         self.survey_path = "/survey/index.php" # https://www.thegradcafe.com/survey/index.php
         self.robots_url = f"{self.base_url}/robots.txt" # https://www.thegradcafe.com/robots.txt
@@ -69,6 +88,15 @@ class GradCafeScraper:
 
     # A : Check robots.txt permissions before scraping
     def _check_robots_permission(self, user_agent="*"):
+        """Check whether ``user_agent`` may fetch the first survey page.
+
+        Args:
+            user_agent (str): User-agent name evaluated by ``robots.txt``.
+
+        Returns:
+            bool: Whether scraping is permitted. Network/read errors default to
+            the permissive fallback described in the implementation.
+        """
         target_url = self._build_url(page=1)
         print(f"[Robots.txt] Checking permissions at {self.robots_url} ...")
 
@@ -104,6 +132,15 @@ class GradCafeScraper:
 
     # B : Build URLs & Request data from Grad Cafe
     def _build_url(self, page=1, query_text=""):
+        """Build a survey URL with optional page and search parameters.
+
+        Args:
+            page (int): One-based result page number.
+            query_text (str): Optional text passed as the ``q`` query parameter.
+
+        Returns:
+            str: Absolute survey URL with URL-encoded query parameters.
+        """
         params = {}
         if page > 1:
             params["page"] = page
@@ -118,6 +155,14 @@ class GradCafeScraper:
         return full_url
 
     def _next_page_url(self, html_content):
+        """Find the absolute URL of a link labeled ``Next``.
+
+        Args:
+            html_content (str): HTML body for the current survey page.
+
+        Returns:
+            str | None: Absolute next-page URL, or ``None`` when no link exists.
+        """
         # Grad Cafe now exposes cursor-based pagination through a Next link.
         soup = BeautifulSoup(html_content, "html.parser")
         for link in soup.find_all("a", href=True):
@@ -126,7 +171,14 @@ class GradCafeScraper:
         return None
 
     def _fetch_html(self, url): # Fetch HTML content from the given URL
-        """Fetch page HTML with urllib3; stops immediately on blocks/errors."""
+        """Fetch page HTML and convert HTTP/network failures to ``None``.
+
+        Args:
+            url (str): Absolute URL to request.
+
+        Returns:
+            str | None: Decoded response body for HTTP 200, otherwise ``None``.
+        """
         try:
             response = self.http.request("GET", url, headers=self.headers, timeout=15.0)
 
@@ -150,6 +202,15 @@ class GradCafeScraper:
 
     # C : Parse admissions data (BeautifulSoup / regex / string search)
     def parse_admissions_data(self, html_content):
+        """Parse applicant records from a Grad Cafe result page.
+
+        Args:
+            html_content (str | None): Survey HTML to parse.
+
+        Returns:
+            list[dict[str, object]]: Parsed applicants. Missing fields are omitted;
+            values may include strings, floats, and URLs.
+        """
         if not html_content:
             return []
 
@@ -365,12 +426,32 @@ class GradCafeScraper:
 
     # Scrape data and save to JSON
     def scrape(self, max_pages=1, target_row=None, html_file=None, html_dir=None, output_file="applicant_data.json"):
+        """Collect records and save non-empty results as JSON.
+
+        Args:
+            max_pages (int): Maximum live pages to fetch.
+            target_row (int | None): Optional maximum number of returned records.
+            html_file (str | None): Optional saved HTML input path.
+            html_dir (str | None): Optional directory of saved HTML files.
+            output_file (str): JSON output path.
+
+        Returns:
+            list[dict[str, object]]: Parsed applicant records.
+        """
         records = scrape_data(max_pages=max_pages, target_row=target_row, html_file=html_file, html_dir=html_dir)
         if records:
             save_data(records, output_file)
         return records
 
 def clean_text(val): # Clean and normalize text from HTML content
+    """Unescape entities, strip tags/action labels, and normalize whitespace.
+
+    Args:
+        val (object | None): Raw text or HTML fragment.
+
+    Returns:
+        str: Cleaned text, or an empty string for ``None``.
+    """
     if val is None:
         return ""
     text = html.unescape(str(val)) # Unescape HTML entities
@@ -381,7 +462,14 @@ def clean_text(val): # Clean and normalize text from HTML content
     return text
 
 def _format_seconds(seconds):
-    """Format seconds into human-readable HH:MM:SS or MM:SS string."""
+    """Format elapsed seconds as minutes or hours, minutes, and seconds.
+
+    Args:
+        seconds (int | float | None): Duration in seconds.
+
+    Returns:
+        str: Human-readable duration, or ``Unknown`` for missing/negative input.
+    """
     if seconds is None:
         return "Unknown"
     if seconds < 0:
@@ -397,17 +485,47 @@ def _format_seconds(seconds):
         return f"{mins:02d}m {secs:02d}s"
 
 def scrape_data(max_pages=1, target_row=100, html_file=None, html_dir=None):
+    """Collect unique applicant records from saved files or live pages.
+
+    Args:
+        max_pages (int): Maximum number of live pages to fetch.
+        target_row (int | None): Stop after this many records when non-zero; also
+            truncates the final result to this size.
+        html_file (str | None): Optional single saved HTML page.
+        html_dir (str | None): Optional directory of saved HTML pages. Only
+            ``.html`` and ``.htm`` files are parsed.
+
+    Returns:
+        list[dict[str, object]]: Applicant records deduplicated by result URL, or
+        by serialized record contents when a URL is absent.
+    """
     scraper = GradCafeScraper()
     records = []
     seen_record_keys = set()
 
     def _record_key(record):
+        """Choose a stable deduplication key for one parsed record.
+
+        Args:
+            record (dict[str, object]): Parsed applicant record.
+
+        Returns:
+            str: Result URL when available, otherwise sorted JSON for the record.
+        """
         # Result URLs identify records reliably; use all fields as a fallback.
         if record.get("url"):
             return record["url"]
         return json.dumps(record, sort_keys=True, ensure_ascii=False)
 
     def _add_unique_records(parsed_records):
+        """Append previously unseen parsed rows to the result collection.
+
+        Args:
+            parsed_records (list[dict[str, object]]): Rows from one page/file.
+
+        Returns:
+            list[dict[str, object]]: Rows newly added to the collection.
+        """
         new_records = []
         for record in parsed_records:
             key = _record_key(record)
@@ -438,6 +556,14 @@ def scrape_data(max_pages=1, target_row=100, html_file=None, html_dir=None):
                 html_files.append(os.path.join(html_dir, f_name))
 
         def _parse_file(filepath):
+            """Read one saved HTML file and parse its applicant rows.
+
+            Args:
+                filepath (str): Path to an HTML or HTM file.
+
+            Returns:
+                list[dict[str, object]]: Parsed applicant rows.
+            """
             with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
                 return scraper.parse_admissions_data(f.read())
 
@@ -548,6 +674,15 @@ def scrape_data(max_pages=1, target_row=100, html_file=None, html_dir=None):
 
 # save data to JSON file
 def save_data(data, filepath="applicant_data.json"):
+    """Serialize applicant records as a UTF-8 JSON array.
+
+    Args:
+        data (list[dict[str, object]]): Applicant records to serialize.
+        filepath (str | os.PathLike[str]): Destination JSON file.
+
+    Returns:
+        None
+    """
     f = open(filepath, "w", encoding="utf-8")
     json.dump(data, f, indent=2, ensure_ascii=False)
     f.close()

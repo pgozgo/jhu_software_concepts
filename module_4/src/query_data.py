@@ -17,7 +17,7 @@ with connection.cursor() as cur:
     """)
     fall_2026_applicant_count = cur.fetchone()[0]
 
-    # Question 2: Percentage of international students among entries that provide a nationality classification
+    # Question 2: Percentage of international students among classified entries
     cur.execute("""
         SELECT ROUND(
             100.0 * COUNT(*) FILTER (WHERE us_or_international = 'International')

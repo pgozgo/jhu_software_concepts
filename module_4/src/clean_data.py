@@ -1,5 +1,8 @@
-# Module 3: clean_data.py
-# This script cleans existing applicant data in a PostgreSQL database or resets the applicants table.
+"""Normalize applicant values and maintain the PostgreSQL applicants table.
+
+The command-line interface cleans stored text and numeric values by default. Pass
+``--reset`` to delete all rows and restart the table's serial primary key.
+"""
 
 import os
 import re
@@ -23,6 +26,14 @@ NUMERIC_COLUMNS = ("gpa", "gre", "gre_v", "gre_aw")
 
 
 def _clean_text(value):
+    """Normalize whitespace and map empty values to ``None``.
+
+    Args:
+        value (object | None): Value read from a text column.
+
+    Returns:
+        str | None: Normalized text, or ``None`` for null/blank values.
+    """
     # Normalize whitespace and store blank text as NULL.
     if value is None:
         return None
@@ -31,6 +42,14 @@ def _clean_text(value):
 
 
 def _clean_number(value):
+    """Convert numbers or extract the first number from scraped text.
+
+    Args:
+        value (object | None): Raw value from a numeric database column.
+
+    Returns:
+        float | None: Parsed numeric value, or ``None`` when no number exists.
+    """
     # Keep numeric database values numeric and extract numbers from scraped text.
     if value is None or value == "":
         return None
@@ -41,6 +60,14 @@ def _clean_number(value):
 
 
 def clean_applicant_data(applicant):
+    """Return a cleaned copy of an applicant row.
+
+    Args:
+        applicant (dict[str, object]): Row keyed by applicants-table columns.
+
+    Returns:
+        dict[str, object]: Copy with normalized text and numeric values.
+    """
     # Clean one database record without changing its primary key.
     cleaned_applicant = dict(applicant)
 
@@ -54,6 +81,14 @@ def clean_applicant_data(applicant):
 
 
 def clean_database(conn_info):
+    """Clean all applicant rows and update them in one transaction.
+
+    Args:
+        conn_info (str): PostgreSQL connection string.
+
+    Returns:
+        None
+    """
     # Read, clean, and update all existing applicant records in one transaction.
     with psycopg.connect(conn_info) as connection:
         with connection.cursor() as cursor:
@@ -114,6 +149,14 @@ def clean_database(conn_info):
 
 
 def reset_database(conn_info):
+    """Delete all applicant rows and restart the serial primary key.
+
+    Args:
+        conn_info (str): PostgreSQL connection string.
+
+    Returns:
+        None
+    """
     # Delete all applicant rows and restart the SERIAL primary key.
     with psycopg.connect(conn_info) as connection:
         with connection.cursor() as cursor:

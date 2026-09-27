@@ -1,0 +1,3 @@
+HTTPS - https://github.com/pgozgo/jhu_software_concepts.git
+SSH - git@github.com:pgozgo/jhu_software_concepts.git
+Repository: jhu_software_concepts / module_4

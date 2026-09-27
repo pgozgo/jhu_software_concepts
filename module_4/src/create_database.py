@@ -1,10 +1,26 @@
-# Module 3: create_database.py
-# This script creates a PostgreSQL database connection and an applicants table if it doesn't exist.
+"""Create a PostgreSQL connection and the applicants table when absent.
+
+The ``main`` function currently uses local connection defaults. Adjust them to
+match the target PostgreSQL instance before running the script.
+"""
 
 import psycopg2
 from psycopg2 import OperationalError
 
 def create_connection(db_name, db_user, db_password, db_host, db_port):
+    """Connect to PostgreSQL using separate connection parameters.
+
+    Args:
+        db_name (str): Database name.
+        db_user (str): Database user.
+        db_password (str): Password for ``db_user``.
+        db_host (str): Database host name or address.
+        db_port (str | int): Database port.
+
+    Returns:
+        psycopg2.extensions.connection | None: Connection, or ``None`` if
+        psycopg2 raises ``OperationalError``.
+    """
     connection = None
     try:
         connection = psycopg2.connect(
@@ -20,6 +36,17 @@ def create_connection(db_name, db_user, db_password, db_host, db_port):
     return connection
 
 def create_table(connection):
+    """Create the applicants table if it does not already exist.
+
+    Args:
+        connection (psycopg2.extensions.connection): Open database connection.
+
+    Returns:
+        None
+
+    Notes:
+        Commits the DDL statement and closes the cursor and connection.
+    """
     create_table_query = """
     CREATE TABLE IF NOT EXISTS applicants (
         p_id SERIAL PRIMARY KEY,
@@ -53,6 +80,11 @@ def create_table(connection):
             connection.close()
 
 def main():
+    """Connect with the script defaults and create the applicants table.
+
+    Returns:
+        None
+    """
     db_name = "postgres"
     db_user = "postgres"
     db_password = "abc123"

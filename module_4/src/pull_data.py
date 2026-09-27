@@ -1,7 +1,8 @@
-# Module 3: pull_data.py
-# Scrapes newly available Grad Cafe entries (via the local scrape.py, copied from Module 2)
-# and inserts only records not already in the database. Designed to be run as a subprocess
-# from the Flask app so the "Pull Data" button never blocks the web server.
+"""Fetch newly posted Grad Cafe results and insert unseen records.
+
+The Flask application runs ``main`` in a background subprocess. Result URLs are
+used to skip records already stored and duplicate URLs on the same scrape.
+"""
 
 import os
 import psycopg
@@ -12,6 +13,14 @@ from load_data import _applicant_values
 MAX_PAGES = 50  # safety cap so a stalled or unexpectedly large site can't scrape forever
 
 def _existing_urls(conn_info):
+    """Read non-null result URLs already present in PostgreSQL.
+
+    Args:
+        conn_info (str): PostgreSQL connection string.
+
+    Returns:
+        set[str]: Existing result URLs.
+    """
     # Grad Cafe result URLs uniquely identify a record; use them to detect duplicates.
     with psycopg.connect(conn_info) as connection:
         with connection.cursor() as cursor:
@@ -19,6 +28,15 @@ def _existing_urls(conn_info):
             return {row[0] for row in cursor.fetchall()}
 
 def _fetch_new_records(existing_urls):
+    """Scrape up to ``MAX_PAGES`` and retain records with unseen URLs.
+
+    Args:
+        existing_urls (set[str]): URLs already in the database. The set is
+            updated with each accepted URL to suppress within-pull duplicates.
+
+    Returns:
+        list[dict[str, object]]: Newly parsed records with unique, non-empty URLs.
+    """
     scraper = GradCafeScraper()
     if not scraper._check_robots_permission():
         print("[Pull Data] Robots.txt does not permit scraping; aborting.")
@@ -60,6 +78,15 @@ def _fetch_new_records(existing_urls):
     return new_records
 
 def _insert_records(records, conn_info):
+    """Insert applicant records in one batch.
+
+    Args:
+        records (list[dict[str, object]]): New applicant records to insert.
+        conn_info (str): PostgreSQL connection string.
+
+    Returns:
+        int: Number of inserted records, or zero for an empty input.
+    """
     if not records:
         return 0
     with psycopg.connect(conn_info) as connection:
@@ -77,6 +104,14 @@ def _insert_records(records, conn_info):
     return len(records)
 
 def main():
+    """Load the configured URL set, scrape new records, and insert them.
+
+    Returns:
+        None
+
+    Raises:
+        RuntimeError: If ``DATABASE_URL`` is not configured.
+    """
     conn_info = os.getenv("DATABASE_URL")
     if not conn_info:
         raise RuntimeError("DATABASE_URL must be set before pulling data")

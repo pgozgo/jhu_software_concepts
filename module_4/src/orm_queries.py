@@ -1,24 +1,49 @@
-"""
-Module 3: Query Applicant Data using SQLAlchemy ORM
-Provides functions to query applicant data from the PostgreSQL database using SQLAlchemy ORM.
+"""SQLAlchemy query functions for the Grad Cafe analysis questions.
+
+Each question accepts an active session and returns one analysis result. The
+``main`` function prints a report using the shared session factory from ``models``.
 """
 
 from sqlalchemy import and_, func, or_, select
 from models import Applicant, Session
 
+
 def _average(value):
-	# Round averages in Python after SQLAlchemy performs the database aggregate.
+	"""Round a non-null SQL aggregate to two decimal places.
+
+	Args:
+		value (float | decimal.Decimal | None): Aggregate result from SQLAlchemy.
+
+	Returns:
+		float | None: Rounded value, preserving ``None`` for empty aggregates.
+	"""
 	return round(value, 2) if value is not None else None
 
+
 def question_1(session):
-	# Count applicants who applied for Fall 2026.
+	"""Count applicants whose term is Fall 2026.
+
+	Args:
+		session (sqlalchemy.orm.Session): Active ORM session.
+
+	Returns:
+		int: Number of matching applicant rows.
+	"""
 	statement = select(func.count()).select_from(Applicant).where(
 		Applicant.term == "Fall 2026"
 	)
 	return session.scalar(statement)
 
+
 def question_4(session):
-	# Average GPA for American applicants applying for Fall 2026.
+	"""Calculate average GPA for American Fall 2026 applicants.
+
+	Args:
+		session (sqlalchemy.orm.Session): Active ORM session.
+
+	Returns:
+		float | None: GPA rounded to two decimals, or ``None`` without values.
+	"""
 	statement = select(func.avg(Applicant.gpa)).where(
 		and_(
 			Applicant.term == "Fall 2026",
@@ -28,8 +53,17 @@ def question_4(session):
 	)
 	return _average(session.scalar(statement))
 
+
 def question_5(session):
-	# Percentage of Fall 2025 entries whose status starts with Accepted.
+	"""Calculate the accepted percentage for Fall 2025 entries.
+
+	Args:
+		session (sqlalchemy.orm.Session): Active ORM session.
+
+	Returns:
+		float | None: Accepted percentage rounded to two decimals, or ``None``
+		when the term has no entries.
+	"""
 	total_statement = select(func.count()).select_from(Applicant).where(
 		Applicant.term == "Fall 2025"
 	)
@@ -40,8 +74,16 @@ def question_5(session):
 	accepted = session.scalar(accepted_statement)
 	return round(100 * accepted / total, 2) if total else None
 
+
 def question_8(session):
-	# Count original-field Fall 2026 accepted PhD Computer Science entries.
+	"""Count accepted Fall 2026 CS PhD rows at selected universities.
+
+	Args:
+		session (sqlalchemy.orm.Session): Active ORM session.
+
+	Returns:
+		int: Number of rows matching the original program text.
+	"""
 	universities = or_(
 		Applicant.program.ilike("%Georgetown University%"),
 		Applicant.program.ilike("%Massachusetts Institute of Technology%"),
@@ -60,8 +102,16 @@ def question_8(session):
 	)
 	return session.scalar(statement)
 
+
 def question_9(session):
-	# Count the same entries using the LLM-generated program and university.
+	"""Count the Question 8 cohort using normalized LLM fields.
+
+	Args:
+		session (sqlalchemy.orm.Session): Active ORM session.
+
+	Returns:
+		int: Number of rows matching normalized program and university fields.
+	"""
 	universities = Applicant.llm_generated_university.in_(
 		[
 			"Georgetown University",
@@ -81,8 +131,16 @@ def question_9(session):
 	)
 	return session.scalar(statement)
 
+
 def question_10(session):
-	# University with highest applicant count in Fall 2026 PhD Computer Science
+	"""Find the leading normalized university for Fall 2026 CS PhD applicants.
+
+	Args:
+		session (sqlalchemy.orm.Session): Active ORM session.
+
+	Returns:
+		list[sqlalchemy.engine.Row]: Zero or one university/count result row.
+	"""
 	statement = (
 		select(Applicant.llm_generated_university, func.count().label("applicant_count"))
 		.where(
@@ -97,9 +155,18 @@ def question_10(session):
 		.limit(1)
 	)
 	return session.execute(statement).all()
-	
+
+
 def question_11(session):
-	# Average scores for Fall 2026 Master's Computer Science applicants.
+	"""Calculate average scores for Fall 2026 Master's CS applicants.
+
+	Args:
+		session (sqlalchemy.orm.Session): Active ORM session.
+
+	Returns:
+		tuple[float | None, float | None, float | None, float | None]: Rounded
+		GPA, GRE, verbal, and analytical-writing averages.
+	"""
 	statement = select(
 		func.avg(Applicant.gpa),
 		func.avg(Applicant.gre),
@@ -115,7 +182,13 @@ def question_11(session):
 	values = session.execute(statement).one()
 	return tuple(_average(value) for value in values)
 
+
 def main():
+	"""Print the ORM analysis report using the configured session factory.
+
+	Returns:
+		None
+	"""
 	with Session() as session:
 		original_count = question_8(session)
 		llm_count = question_9(session)
@@ -128,10 +201,6 @@ def main():
 		print(f"University with highest applicant count: {question_10(session)}")
 		print(f"Fall 2026 CS Masters Averages: {question_11(session)}")
 
+
 if __name__ == "__main__":
 	main()
-
-# how to run the queries using SQLAlchemy ORM
-# 1. Set the DATABASE_URL environment variable to point to your PostgreSQL database.
-# 2. Run this script using Python: python orm_queries.py
-# 3. The script will output the results of the queries defined in this module.
