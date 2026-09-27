@@ -1,0 +1,335 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>orm_queries &mdash; Module 4 - The Grad Cafe Analytics 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Module 4 - The Grad Cafe Analytics
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Project guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">Project Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../setup.html">Setup and Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../testing.html">Testing Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Module 4 - The Grad Cafe Analytics</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">orm_queries</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for orm_queries</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;SQLAlchemy query functions for the Grad Cafe analysis questions.</span>
+
+<span class="sd">Each question accepts an active session and returns one analysis result. The</span>
+<span class="sd">``main`` function prints a report using the shared session factory from ``models``.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy</span><span class="w"> </span><span class="kn">import</span> <span class="n">and_</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">or_</span><span class="p">,</span> <span class="n">select</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Applicant</span><span class="p">,</span> <span class="n">Session</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_average</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;Round a non-null SQL aggregate to two decimal places.</span>
+
+<span class="sd">	Args:</span>
+<span class="sd">		value (float | decimal.Decimal | None): Aggregate result from SQLAlchemy.</span>
+
+<span class="sd">	Returns:</span>
+<span class="sd">		float | None: Rounded value, preserving ``None`` for empty aggregates.</span>
+<span class="sd">	&quot;&quot;&quot;</span>
+	<span class="k">return</span> <span class="nb">round</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+
+
+<div class="viewcode-block" id="question_1">
+<a class="viewcode-back" href="../api.html#orm_queries.question_1">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">question_1</span><span class="p">(</span><span class="n">session</span><span class="p">):</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;Count applicants whose term is Fall 2026.</span>
+
+<span class="sd">	Args:</span>
+<span class="sd">		session (sqlalchemy.orm.Session): Active ORM session.</span>
+
+<span class="sd">	Returns:</span>
+<span class="sd">		int: Number of matching applicant rows.</span>
+<span class="sd">	&quot;&quot;&quot;</span>
+	<span class="n">statement</span> <span class="o">=</span> <span class="n">select</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">count</span><span class="p">())</span><span class="o">.</span><span class="n">select_from</span><span class="p">(</span><span class="n">Applicant</span><span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+		<span class="n">Applicant</span><span class="o">.</span><span class="n">term</span> <span class="o">==</span> <span class="s2">&quot;Fall 2026&quot;</span>
+	<span class="p">)</span>
+	<span class="k">return</span> <span class="n">session</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="n">statement</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="question_4">
+<a class="viewcode-back" href="../api.html#orm_queries.question_4">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">question_4</span><span class="p">(</span><span class="n">session</span><span class="p">):</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;Calculate average GPA for American Fall 2026 applicants.</span>
+
+<span class="sd">	Args:</span>
+<span class="sd">		session (sqlalchemy.orm.Session): Active ORM session.</span>
+
+<span class="sd">	Returns:</span>
+<span class="sd">		float | None: GPA rounded to two decimals, or ``None`` without values.</span>
+<span class="sd">	&quot;&quot;&quot;</span>
+	<span class="n">statement</span> <span class="o">=</span> <span class="n">select</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">avg</span><span class="p">(</span><span class="n">Applicant</span><span class="o">.</span><span class="n">gpa</span><span class="p">))</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+		<span class="n">and_</span><span class="p">(</span>
+			<span class="n">Applicant</span><span class="o">.</span><span class="n">term</span> <span class="o">==</span> <span class="s2">&quot;Fall 2026&quot;</span><span class="p">,</span>
+			<span class="n">Applicant</span><span class="o">.</span><span class="n">us_or_international</span> <span class="o">==</span> <span class="s2">&quot;American&quot;</span><span class="p">,</span>
+			<span class="n">Applicant</span><span class="o">.</span><span class="n">gpa</span><span class="o">.</span><span class="n">is_not</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span>
+		<span class="p">)</span>
+	<span class="p">)</span>
+	<span class="k">return</span> <span class="n">_average</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="n">statement</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="question_5">
+<a class="viewcode-back" href="../api.html#orm_queries.question_5">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">question_5</span><span class="p">(</span><span class="n">session</span><span class="p">):</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;Calculate the accepted percentage for Fall 2025 entries.</span>
+
+<span class="sd">	Args:</span>
+<span class="sd">		session (sqlalchemy.orm.Session): Active ORM session.</span>
+
+<span class="sd">	Returns:</span>
+<span class="sd">		float | None: Accepted percentage rounded to two decimals, or ``None``</span>
+<span class="sd">		when the term has no entries.</span>
+<span class="sd">	&quot;&quot;&quot;</span>
+	<span class="n">total_statement</span> <span class="o">=</span> <span class="n">select</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">count</span><span class="p">())</span><span class="o">.</span><span class="n">select_from</span><span class="p">(</span><span class="n">Applicant</span><span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+		<span class="n">Applicant</span><span class="o">.</span><span class="n">term</span> <span class="o">==</span> <span class="s2">&quot;Fall 2025&quot;</span>
+	<span class="p">)</span>
+	<span class="n">accepted_statement</span> <span class="o">=</span> <span class="n">select</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">count</span><span class="p">())</span><span class="o">.</span><span class="n">select_from</span><span class="p">(</span><span class="n">Applicant</span><span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+		<span class="n">and_</span><span class="p">(</span><span class="n">Applicant</span><span class="o">.</span><span class="n">term</span> <span class="o">==</span> <span class="s2">&quot;Fall 2025&quot;</span><span class="p">,</span> <span class="n">Applicant</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">ilike</span><span class="p">(</span><span class="s2">&quot;Accepted%&quot;</span><span class="p">))</span>
+	<span class="p">)</span>
+	<span class="n">total</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="n">total_statement</span><span class="p">)</span>
+	<span class="n">accepted</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="n">accepted_statement</span><span class="p">)</span>
+	<span class="k">return</span> <span class="nb">round</span><span class="p">(</span><span class="mi">100</span> <span class="o">*</span> <span class="n">accepted</span> <span class="o">/</span> <span class="n">total</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="k">if</span> <span class="n">total</span> <span class="k">else</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="question_8">
+<a class="viewcode-back" href="../api.html#orm_queries.question_8">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">question_8</span><span class="p">(</span><span class="n">session</span><span class="p">):</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;Count accepted Fall 2026 CS PhD rows at selected universities.</span>
+
+<span class="sd">	Args:</span>
+<span class="sd">		session (sqlalchemy.orm.Session): Active ORM session.</span>
+
+<span class="sd">	Returns:</span>
+<span class="sd">		int: Number of rows matching the original program text.</span>
+<span class="sd">	&quot;&quot;&quot;</span>
+	<span class="n">universities</span> <span class="o">=</span> <span class="n">or_</span><span class="p">(</span>
+		<span class="n">Applicant</span><span class="o">.</span><span class="n">program</span><span class="o">.</span><span class="n">ilike</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%G</span><span class="s2">eorgetown University%&quot;</span><span class="p">),</span>
+		<span class="n">Applicant</span><span class="o">.</span><span class="n">program</span><span class="o">.</span><span class="n">ilike</span><span class="p">(</span><span class="s2">&quot;%Massachusetts Institute of Technology%&quot;</span><span class="p">),</span>
+		<span class="n">Applicant</span><span class="o">.</span><span class="n">program</span><span class="o">.</span><span class="n">ilike</span><span class="p">(</span><span class="s2">&quot;%MIT%&quot;</span><span class="p">),</span>
+		<span class="n">Applicant</span><span class="o">.</span><span class="n">program</span><span class="o">.</span><span class="n">ilike</span><span class="p">(</span><span class="s2">&quot;%Stanford University%&quot;</span><span class="p">),</span>
+		<span class="n">Applicant</span><span class="o">.</span><span class="n">program</span><span class="o">.</span><span class="n">ilike</span><span class="p">(</span><span class="s2">&quot;%Carnegie Mellon University%&quot;</span><span class="p">),</span>
+	<span class="p">)</span>
+	<span class="n">statement</span> <span class="o">=</span> <span class="n">select</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">count</span><span class="p">())</span><span class="o">.</span><span class="n">select_from</span><span class="p">(</span><span class="n">Applicant</span><span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+		<span class="n">and_</span><span class="p">(</span>
+			<span class="n">Applicant</span><span class="o">.</span><span class="n">term</span> <span class="o">==</span> <span class="s2">&quot;Fall 2026&quot;</span><span class="p">,</span>
+			<span class="n">Applicant</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">ilike</span><span class="p">(</span><span class="s2">&quot;Accepted%&quot;</span><span class="p">),</span>
+			<span class="n">Applicant</span><span class="o">.</span><span class="n">program</span><span class="o">.</span><span class="n">ilike</span><span class="p">(</span><span class="s2">&quot;%Computer Science%&quot;</span><span class="p">),</span>
+			<span class="n">Applicant</span><span class="o">.</span><span class="n">degree</span> <span class="o">==</span> <span class="s2">&quot;PhD&quot;</span><span class="p">,</span>
+			<span class="n">universities</span><span class="p">,</span>
+		<span class="p">)</span>
+	<span class="p">)</span>
+	<span class="k">return</span> <span class="n">session</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="n">statement</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="question_9">
+<a class="viewcode-back" href="../api.html#orm_queries.question_9">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">question_9</span><span class="p">(</span><span class="n">session</span><span class="p">):</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;Count the Question 8 cohort using normalized LLM fields.</span>
+
+<span class="sd">	Args:</span>
+<span class="sd">		session (sqlalchemy.orm.Session): Active ORM session.</span>
+
+<span class="sd">	Returns:</span>
+<span class="sd">		int: Number of rows matching normalized program and university fields.</span>
+<span class="sd">	&quot;&quot;&quot;</span>
+	<span class="n">universities</span> <span class="o">=</span> <span class="n">Applicant</span><span class="o">.</span><span class="n">llm_generated_university</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span>
+		<span class="p">[</span>
+			<span class="s2">&quot;Georgetown University&quot;</span><span class="p">,</span>
+			<span class="s2">&quot;Massachusetts Institute of Technology&quot;</span><span class="p">,</span>
+			<span class="s2">&quot;Stanford University&quot;</span><span class="p">,</span>
+			<span class="s2">&quot;Carnegie Mellon University&quot;</span><span class="p">,</span>
+		<span class="p">]</span>
+	<span class="p">)</span>
+	<span class="n">statement</span> <span class="o">=</span> <span class="n">select</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">count</span><span class="p">())</span><span class="o">.</span><span class="n">select_from</span><span class="p">(</span><span class="n">Applicant</span><span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+		<span class="n">and_</span><span class="p">(</span>
+			<span class="n">Applicant</span><span class="o">.</span><span class="n">term</span> <span class="o">==</span> <span class="s2">&quot;Fall 2026&quot;</span><span class="p">,</span>
+			<span class="n">Applicant</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">ilike</span><span class="p">(</span><span class="s2">&quot;Accepted%&quot;</span><span class="p">),</span>
+			<span class="n">Applicant</span><span class="o">.</span><span class="n">llm_generated_program</span> <span class="o">==</span> <span class="s2">&quot;Computer Science&quot;</span><span class="p">,</span>
+			<span class="n">Applicant</span><span class="o">.</span><span class="n">degree</span> <span class="o">==</span> <span class="s2">&quot;PhD&quot;</span><span class="p">,</span>
+			<span class="n">universities</span><span class="p">,</span>
+		<span class="p">)</span>
+	<span class="p">)</span>
+	<span class="k">return</span> <span class="n">session</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="n">statement</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="question_10">
+<a class="viewcode-back" href="../api.html#orm_queries.question_10">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">question_10</span><span class="p">(</span><span class="n">session</span><span class="p">):</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;Find the leading normalized university for Fall 2026 CS PhD applicants.</span>
+
+<span class="sd">	Args:</span>
+<span class="sd">		session (sqlalchemy.orm.Session): Active ORM session.</span>
+
+<span class="sd">	Returns:</span>
+<span class="sd">		list[sqlalchemy.engine.Row]: Zero or one university/count result row.</span>
+<span class="sd">	&quot;&quot;&quot;</span>
+	<span class="n">statement</span> <span class="o">=</span> <span class="p">(</span>
+		<span class="n">select</span><span class="p">(</span><span class="n">Applicant</span><span class="o">.</span><span class="n">llm_generated_university</span><span class="p">,</span> <span class="n">func</span><span class="o">.</span><span class="n">count</span><span class="p">()</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s2">&quot;applicant_count&quot;</span><span class="p">))</span>
+		<span class="o">.</span><span class="n">where</span><span class="p">(</span>
+			<span class="n">and_</span><span class="p">(</span>
+				<span class="n">Applicant</span><span class="o">.</span><span class="n">term</span> <span class="o">==</span> <span class="s2">&quot;Fall 2026&quot;</span><span class="p">,</span>
+				<span class="n">Applicant</span><span class="o">.</span><span class="n">degree</span> <span class="o">==</span> <span class="s2">&quot;PhD&quot;</span><span class="p">,</span>
+				<span class="n">Applicant</span><span class="o">.</span><span class="n">llm_generated_program</span> <span class="o">==</span> <span class="s2">&quot;Computer Science&quot;</span><span class="p">,</span>
+			<span class="p">)</span>
+		<span class="p">)</span>
+		<span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="n">Applicant</span><span class="o">.</span><span class="n">llm_generated_university</span><span class="p">)</span>
+		<span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">count</span><span class="p">()</span><span class="o">.</span><span class="n">desc</span><span class="p">(),</span> <span class="n">Applicant</span><span class="o">.</span><span class="n">llm_generated_university</span><span class="p">)</span>
+		<span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+	<span class="p">)</span>
+	<span class="k">return</span> <span class="n">session</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">statement</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="question_11">
+<a class="viewcode-back" href="../api.html#orm_queries.question_11">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">question_11</span><span class="p">(</span><span class="n">session</span><span class="p">):</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;Calculate average scores for Fall 2026 Master&#39;s CS applicants.</span>
+
+<span class="sd">	Args:</span>
+<span class="sd">		session (sqlalchemy.orm.Session): Active ORM session.</span>
+
+<span class="sd">	Returns:</span>
+<span class="sd">		tuple[float | None, float | None, float | None, float | None]: Rounded</span>
+<span class="sd">		GPA, GRE, verbal, and analytical-writing averages.</span>
+<span class="sd">	&quot;&quot;&quot;</span>
+	<span class="n">statement</span> <span class="o">=</span> <span class="n">select</span><span class="p">(</span>
+		<span class="n">func</span><span class="o">.</span><span class="n">avg</span><span class="p">(</span><span class="n">Applicant</span><span class="o">.</span><span class="n">gpa</span><span class="p">),</span>
+		<span class="n">func</span><span class="o">.</span><span class="n">avg</span><span class="p">(</span><span class="n">Applicant</span><span class="o">.</span><span class="n">gre</span><span class="p">),</span>
+		<span class="n">func</span><span class="o">.</span><span class="n">avg</span><span class="p">(</span><span class="n">Applicant</span><span class="o">.</span><span class="n">gre_v</span><span class="p">),</span>
+		<span class="n">func</span><span class="o">.</span><span class="n">avg</span><span class="p">(</span><span class="n">Applicant</span><span class="o">.</span><span class="n">gre_aw</span><span class="p">),</span>
+	<span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+		<span class="n">and_</span><span class="p">(</span>
+			<span class="n">Applicant</span><span class="o">.</span><span class="n">term</span> <span class="o">==</span> <span class="s2">&quot;Fall 2026&quot;</span><span class="p">,</span>
+			<span class="n">Applicant</span><span class="o">.</span><span class="n">degree</span><span class="o">.</span><span class="n">ilike</span><span class="p">(</span><span class="s2">&quot;%master%&quot;</span><span class="p">),</span>
+			<span class="n">Applicant</span><span class="o">.</span><span class="n">program</span><span class="o">.</span><span class="n">ilike</span><span class="p">(</span><span class="s2">&quot;%Computer Science%&quot;</span><span class="p">),</span>
+		<span class="p">)</span>
+	<span class="p">)</span>
+	<span class="n">values</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">statement</span><span class="p">)</span><span class="o">.</span><span class="n">one</span><span class="p">()</span>
+	<span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">_average</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">values</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../api.html#orm_queries.main">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;Print the ORM analysis report using the configured session factory.</span>
+
+<span class="sd">	Returns:</span>
+<span class="sd">		None</span>
+<span class="sd">	&quot;&quot;&quot;</span>
+	<span class="k">with</span> <span class="n">Session</span><span class="p">()</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+		<span class="n">original_count</span> <span class="o">=</span> <span class="n">question_8</span><span class="p">(</span><span class="n">session</span><span class="p">)</span>
+		<span class="n">llm_count</span> <span class="o">=</span> <span class="n">question_9</span><span class="p">(</span><span class="n">session</span><span class="p">)</span>
+		<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fall 2026 Applicant Count: </span><span class="si">{</span><span class="n">question_1</span><span class="p">(</span><span class="n">session</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+		<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Average GPA American: </span><span class="si">{</span><span class="n">question_4</span><span class="p">(</span><span class="n">session</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+		<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Percent accepted Fall 2025: </span><span class="si">{</span><span class="n">question_5</span><span class="p">(</span><span class="n">session</span><span class="p">)</span><span class="si">}</span><span class="s2">%&quot;</span><span class="p">)</span>
+		<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fall 2026 accepted CS PhD Count: </span><span class="si">{</span><span class="n">original_count</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+		<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fall 2026 accepted CS PhD LLM Count: </span><span class="si">{</span><span class="n">llm_count</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+		<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Q9 Difference: </span><span class="si">{</span><span class="n">llm_count</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">original_count</span><span class="si">:</span><span class="s2">+d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+		<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;University with highest applicant count: </span><span class="si">{</span><span class="n">question_10</span><span class="p">(</span><span class="n">session</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+		<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fall 2026 CS Masters Averages: </span><span class="si">{</span><span class="n">question_11</span><span class="p">(</span><span class="n">session</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+	<span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Sean Bae.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

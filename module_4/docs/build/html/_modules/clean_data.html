@@ -1,0 +1,309 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>clean_data &mdash; Module 4 - The Grad Cafe Analytics 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Module 4 - The Grad Cafe Analytics
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Project guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">Project Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../setup.html">Setup and Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../testing.html">Testing Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Module 4 - The Grad Cafe Analytics</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">clean_data</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for clean_data</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Normalize applicant values and maintain the PostgreSQL applicants table.</span>
+
+<span class="sd">The command-line interface cleans stored text and numeric values by default. Pass</span>
+<span class="sd">``--reset`` to delete all rows and restart the table&#39;s serial primary key.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">psycopg</span>
+
+
+<span class="n">TEXT_COLUMNS</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">&quot;program&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;comments&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;url&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;status&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;term&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;us_or_international&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;degree&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;llm_generated_program&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;llm_generated_university&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">NUMERIC_COLUMNS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;gpa&quot;</span><span class="p">,</span> <span class="s2">&quot;gre&quot;</span><span class="p">,</span> <span class="s2">&quot;gre_v&quot;</span><span class="p">,</span> <span class="s2">&quot;gre_aw&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_clean_text</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Normalize whitespace and map empty values to ``None``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        value (object | None): Value read from a text column.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str | None: Normalized text, or ``None`` for null/blank values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Normalize whitespace and store blank text as NULL.</span>
+    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">cleaned_value</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\s+&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">))</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">cleaned_value</span> <span class="ow">or</span> <span class="kc">None</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_clean_number</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert numbers or extract the first number from scraped text.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        value (object | None): Raw value from a numeric database column.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float | None: Parsed numeric value, or ``None`` when no number exists.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Keep numeric database values numeric and extract numbers from scraped text.</span>
+    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">value</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;[-+]?\d+(?:\.\d+)?&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">())</span> <span class="k">if</span> <span class="n">match</span> <span class="k">else</span> <span class="kc">None</span>
+
+
+<div class="viewcode-block" id="clean_applicant_data">
+<a class="viewcode-back" href="../api.html#clean_data.clean_applicant_data">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">clean_applicant_data</span><span class="p">(</span><span class="n">applicant</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a cleaned copy of an applicant row.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        applicant (dict[str, object]): Row keyed by applicants-table columns.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dict[str, object]: Copy with normalized text and numeric values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Clean one database record without changing its primary key.</span>
+    <span class="n">cleaned_applicant</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">applicant</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">TEXT_COLUMNS</span><span class="p">:</span>
+        <span class="n">cleaned_applicant</span><span class="p">[</span><span class="n">column</span><span class="p">]</span> <span class="o">=</span> <span class="n">_clean_text</span><span class="p">(</span><span class="n">applicant</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">column</span><span class="p">))</span>
+
+    <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">NUMERIC_COLUMNS</span><span class="p">:</span>
+        <span class="n">cleaned_applicant</span><span class="p">[</span><span class="n">column</span><span class="p">]</span> <span class="o">=</span> <span class="n">_clean_number</span><span class="p">(</span><span class="n">applicant</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">column</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">cleaned_applicant</span></div>
+
+
+
+<div class="viewcode-block" id="clean_database">
+<a class="viewcode-back" href="../api.html#clean_data.clean_database">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">clean_database</span><span class="p">(</span><span class="n">conn_info</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Clean all applicant rows and update them in one transaction.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        conn_info (str): PostgreSQL connection string.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Read, clean, and update all existing applicant records in one transaction.</span>
+    <span class="k">with</span> <span class="n">psycopg</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">conn_info</span><span class="p">)</span> <span class="k">as</span> <span class="n">connection</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">connection</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span> <span class="k">as</span> <span class="n">cursor</span><span class="p">:</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">                </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                SELECT p_id, program, comments, url, status, term,</span>
+<span class="sd">                       us_or_international, degree, llm_generated_program,</span>
+<span class="sd">                       llm_generated_university, gpa, gre, gre_v, gre_aw</span>
+<span class="sd">                FROM applicants</span>
+<span class="sd">                &quot;&quot;&quot;</span>
+            <span class="p">)</span>
+            <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="n">description</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">description</span> <span class="ow">in</span> <span class="n">cursor</span><span class="o">.</span><span class="n">description</span><span class="p">]</span>
+            <span class="n">applicants</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">clean_applicant_data</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">columns</span><span class="p">,</span> <span class="n">row</span><span class="p">)))</span>
+                <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+            <span class="p">]</span>
+
+            <span class="n">cursor</span><span class="o">.</span><span class="n">executemany</span><span class="p">(</span>
+<span class="w">                </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                UPDATE applicants</span>
+<span class="sd">                SET program = %s,</span>
+<span class="sd">                    comments = %s,</span>
+<span class="sd">                    url = %s,</span>
+<span class="sd">                    status = %s,</span>
+<span class="sd">                    term = %s,</span>
+<span class="sd">                    us_or_international = %s,</span>
+<span class="sd">                    degree = %s,</span>
+<span class="sd">                    llm_generated_program = %s,</span>
+<span class="sd">                    llm_generated_university = %s,</span>
+<span class="sd">                    gpa = %s,</span>
+<span class="sd">                    gre = %s,</span>
+<span class="sd">                    gre_v = %s,</span>
+<span class="sd">                    gre_aw = %s</span>
+<span class="sd">                WHERE p_id = %s</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+                <span class="p">(</span>
+                    <span class="p">(</span>
+                        <span class="n">applicant</span><span class="p">[</span><span class="s2">&quot;program&quot;</span><span class="p">],</span>
+                        <span class="n">applicant</span><span class="p">[</span><span class="s2">&quot;comments&quot;</span><span class="p">],</span>
+                        <span class="n">applicant</span><span class="p">[</span><span class="s2">&quot;url&quot;</span><span class="p">],</span>
+                        <span class="n">applicant</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">],</span>
+                        <span class="n">applicant</span><span class="p">[</span><span class="s2">&quot;term&quot;</span><span class="p">],</span>
+                        <span class="n">applicant</span><span class="p">[</span><span class="s2">&quot;us_or_international&quot;</span><span class="p">],</span>
+                        <span class="n">applicant</span><span class="p">[</span><span class="s2">&quot;degree&quot;</span><span class="p">],</span>
+                        <span class="n">applicant</span><span class="p">[</span><span class="s2">&quot;llm_generated_program&quot;</span><span class="p">],</span>
+                        <span class="n">applicant</span><span class="p">[</span><span class="s2">&quot;llm_generated_university&quot;</span><span class="p">],</span>
+                        <span class="n">applicant</span><span class="p">[</span><span class="s2">&quot;gpa&quot;</span><span class="p">],</span>
+                        <span class="n">applicant</span><span class="p">[</span><span class="s2">&quot;gre&quot;</span><span class="p">],</span>
+                        <span class="n">applicant</span><span class="p">[</span><span class="s2">&quot;gre_v&quot;</span><span class="p">],</span>
+                        <span class="n">applicant</span><span class="p">[</span><span class="s2">&quot;gre_aw&quot;</span><span class="p">],</span>
+                        <span class="n">applicant</span><span class="p">[</span><span class="s2">&quot;p_id&quot;</span><span class="p">],</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">applicant</span> <span class="ow">in</span> <span class="n">applicants</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cleaned </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">applicants</span><span class="p">)</span><span class="si">}</span><span class="s2"> applicants in the database.&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="reset_database">
+<a class="viewcode-back" href="../api.html#clean_data.reset_database">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">reset_database</span><span class="p">(</span><span class="n">conn_info</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Delete all applicant rows and restart the serial primary key.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        conn_info (str): PostgreSQL connection string.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Delete all applicant rows and restart the SERIAL primary key.</span>
+    <span class="k">with</span> <span class="n">psycopg</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">conn_info</span><span class="p">)</span> <span class="k">as</span> <span class="n">connection</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">connection</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span> <span class="k">as</span> <span class="n">cursor</span><span class="p">:</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;TRUNCATE TABLE applicants RESTART IDENTITY&quot;</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Applicants table reset.&quot;</span><span class="p">)</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Clean existing applicant data or reset the applicants table.&quot;</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--reset&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Delete all applicants and restart p_id from 1.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="n">conn_info</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;DATABASE_URL&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">conn_info</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;DATABASE_URL must be set before cleaning data&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">reset</span><span class="p">:</span>
+        <span class="n">reset_database</span><span class="p">(</span><span class="n">conn_info</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">clean_database</span><span class="p">(</span><span class="n">conn_info</span><span class="p">)</span>
+
+<span class="c1"># how to run:</span>
+<span class="c1"># python clean_data.py --reset   # to reset the database</span>
+<span class="c1"># python clean_data.py           # to clean the database</span>
+
+<span class="c1"># from command line, you can run the script as follows:</span>
+<span class="c1"># python -c &quot;import os, psycopg; conn=psycopg.connect(os.environ[&#39;DATABASE_URL&#39;]); conn.execute(&#39;TRUNCATE TABLE applicants RESTART IDENTITY&#39;); conn.commit(); conn.close(); print(&#39;Applicants table reset.&#39;)&quot;</span>
+<span class="c1"># python clean_data.py --reset   # to reset the database</span>
+<span class="c1"># python clean_data.py           # to clean the database</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Sean Bae.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

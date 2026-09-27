@@ -1,0 +1,155 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Project Overview &mdash; Module 4 - The Grad Cafe Analytics 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Architecture" href="architecture.html" />
+    <link rel="prev" title="Grad Cafe Analytics" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Module 4 - The Grad Cafe Analytics
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Project guide</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Project Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#data-paths">Data paths</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#analysis-options">Analysis options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#interpretation">Interpretation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="setup.html">Setup and Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="testing.html">Testing Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Module 4 - The Grad Cafe Analytics</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Project Overview</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/overview.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="project-overview">
+<h1>Project Overview<a class="headerlink" href="#project-overview" title="Link to this heading"></a></h1>
+<p>Grad Cafe Analytics stores applicant-submitted admissions results in PostgreSQL,
+calculates summary statistics, and displays selected results through a Flask page.
+The source code is in <code class="docutils literal notranslate"><span class="pre">module_4/src</span></code>; these docs and the pytest suite are in
+<code class="docutils literal notranslate"><span class="pre">module_4/docs</span></code> and <code class="docutils literal notranslate"><span class="pre">module_4/tests</span></code>.</p>
+<section id="data-paths">
+<h2>Data paths<a class="headerlink" href="#data-paths" title="Link to this heading"></a></h2>
+<p>There are two ways data enters the <code class="docutils literal notranslate"><span class="pre">applicants</span></code> table:</p>
+<ol class="arabic simple">
+<li><p><strong>Initial import:</strong> <code class="docutils literal notranslate"><span class="pre">load_data.py</span></code> reads the checked-in
+<code class="docutils literal notranslate"><span class="pre">llm_extend_applicant_data.json</span></code> export, normalizes legacy keys, and inserts
+those records.</p></li>
+<li><p><strong>New results:</strong> the Flask <strong>Pull Data</strong> action starts <code class="docutils literal notranslate"><span class="pre">pull_data.py</span></code> as a
+subprocess. That script checks saved result URLs, asks <code class="docutils literal notranslate"><span class="pre">scrape.py</span></code> to parse
+new pages, and inserts records whose URLs are not already present.</p></li>
+</ol>
+<p>The Flask page runs its SQL queries against PostgreSQL on each <code class="docutils literal notranslate"><span class="pre">GET</span> <span class="pre">/</span></code> request.
+The <strong>Update Analysis</strong> action does not scrape or mutate the database; it returns a
+status message and the next page load queries the latest saved data.</p>
+</section>
+<section id="analysis-options">
+<h2>Analysis options<a class="headerlink" href="#analysis-options" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">query_data.py</span></code> runs the assignment’s reporting queries as raw PostgreSQL SQL.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">orm_queries.py</span></code> implements corresponding query functions using SQLAlchemy.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">app/app.py</span></code> runs three page queries and renders the international percentage,
+the leading Fall 2026 PhD Computer Science university, and Fall 2026 Master’s
+Computer Science score averages.</p></li>
+</ul>
+</section>
+<section id="interpretation">
+<h2>Interpretation<a class="headerlink" href="#interpretation" title="Link to this heading"></a></h2>
+<p>Grad Cafe results are voluntary self-reports, not a random sample of applicants.
+Missing scores, inconsistent program names, and reporting bias limit how broadly
+the results can be generalized. The reported counts describe Grad Cafe submissions,
+not the full applicant population; averages may also be affected by missing scores
+and inconsistent program labels.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Grad Cafe Analytics" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="architecture.html" class="btn btn-neutral float-right" title="Architecture" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Sean Bae.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

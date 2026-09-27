@@ -1,0 +1,1159 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API Reference &mdash; Module 4 - The Grad Cafe Analytics 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Testing Guide" href="testing.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Module 4 - The Grad Cafe Analytics
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Project guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Project Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="setup.html">Setup and Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="testing.html">Testing Guide</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#module-app.app">Flask application and routes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#app.app.disable_browser_cache"><code class="docutils literal notranslate"><span class="pre">disable_browser_cache()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#app.app.index"><code class="docutils literal notranslate"><span class="pre">index()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#app.app.pull_data"><code class="docutils literal notranslate"><span class="pre">pull_data()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#app.app.update_analysis"><code class="docutils literal notranslate"><span class="pre">update_analysis()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#scraper">Scraper</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#scrape.GradCafeScraper"><code class="docutils literal notranslate"><span class="pre">GradCafeScraper</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#scrape.GradCafeScraper.base_url"><code class="docutils literal notranslate"><span class="pre">GradCafeScraper.base_url</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#scrape.GradCafeScraper.survey_path"><code class="docutils literal notranslate"><span class="pre">GradCafeScraper.survey_path</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#scrape.GradCafeScraper.robots_url"><code class="docutils literal notranslate"><span class="pre">GradCafeScraper.robots_url</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#scrape.GradCafeScraper.headers"><code class="docutils literal notranslate"><span class="pre">GradCafeScraper.headers</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#scrape.GradCafeScraper.http"><code class="docutils literal notranslate"><span class="pre">GradCafeScraper.http</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#scrape.GradCafeScraper._build_url"><code class="docutils literal notranslate"><span class="pre">GradCafeScraper._build_url()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#scrape.GradCafeScraper._check_robots_permission"><code class="docutils literal notranslate"><span class="pre">GradCafeScraper._check_robots_permission()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#scrape.GradCafeScraper._fetch_html"><code class="docutils literal notranslate"><span class="pre">GradCafeScraper._fetch_html()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#scrape.GradCafeScraper._next_page_url"><code class="docutils literal notranslate"><span class="pre">GradCafeScraper._next_page_url()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#scrape.GradCafeScraper.parse_admissions_data"><code class="docutils literal notranslate"><span class="pre">GradCafeScraper.parse_admissions_data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#scrape.GradCafeScraper.scrape"><code class="docutils literal notranslate"><span class="pre">GradCafeScraper.scrape()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#scrape.clean_text"><code class="docutils literal notranslate"><span class="pre">clean_text()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#scrape.scrape_data"><code class="docutils literal notranslate"><span class="pre">scrape_data()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#scrape.save_data"><code class="docutils literal notranslate"><span class="pre">save_data()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-clean_data">Database and ETL</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#clean_data.clean_applicant_data"><code class="docutils literal notranslate"><span class="pre">clean_applicant_data()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#clean_data.clean_database"><code class="docutils literal notranslate"><span class="pre">clean_database()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#clean_data.reset_database"><code class="docutils literal notranslate"><span class="pre">reset_database()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#load_data.load_data_to_db"><code class="docutils literal notranslate"><span class="pre">load_data_to_db()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pull_data.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#create_database.create_connection"><code class="docutils literal notranslate"><span class="pre">create_connection()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#create_database.create_table"><code class="docutils literal notranslate"><span class="pre">create_table()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#create_database.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#orm-model-and-queries">ORM model and queries</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#models.Applicant"><code class="docutils literal notranslate"><span class="pre">Applicant</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#models.Applicant.p_id"><code class="docutils literal notranslate"><span class="pre">Applicant.p_id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Applicant.program"><code class="docutils literal notranslate"><span class="pre">Applicant.program</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Applicant.comments"><code class="docutils literal notranslate"><span class="pre">Applicant.comments</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Applicant.date_added"><code class="docutils literal notranslate"><span class="pre">Applicant.date_added</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Applicant.url"><code class="docutils literal notranslate"><span class="pre">Applicant.url</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Applicant.status"><code class="docutils literal notranslate"><span class="pre">Applicant.status</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Applicant.term"><code class="docutils literal notranslate"><span class="pre">Applicant.term</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Applicant.us_or_international"><code class="docutils literal notranslate"><span class="pre">Applicant.us_or_international</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Applicant.gpa"><code class="docutils literal notranslate"><span class="pre">Applicant.gpa</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Applicant.gre"><code class="docutils literal notranslate"><span class="pre">Applicant.gre</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Applicant.gre_v"><code class="docutils literal notranslate"><span class="pre">Applicant.gre_v</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Applicant.gre_aw"><code class="docutils literal notranslate"><span class="pre">Applicant.gre_aw</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Applicant.degree"><code class="docutils literal notranslate"><span class="pre">Applicant.degree</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Applicant.llm_generated_program"><code class="docutils literal notranslate"><span class="pre">Applicant.llm_generated_program</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Applicant.llm_generated_university"><code class="docutils literal notranslate"><span class="pre">Applicant.llm_generated_university</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#models.Base"><code class="docutils literal notranslate"><span class="pre">Base</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#orm_queries.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#orm_queries.question_1"><code class="docutils literal notranslate"><span class="pre">question_1()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#orm_queries.question_10"><code class="docutils literal notranslate"><span class="pre">question_10()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#orm_queries.question_11"><code class="docutils literal notranslate"><span class="pre">question_11()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#orm_queries.question_4"><code class="docutils literal notranslate"><span class="pre">question_4()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#orm_queries.question_5"><code class="docutils literal notranslate"><span class="pre">question_5()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#orm_queries.question_8"><code class="docutils literal notranslate"><span class="pre">question_8()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#orm_queries.question_9"><code class="docutils literal notranslate"><span class="pre">question_9()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#raw-sql-report">Raw SQL report</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Module 4 - The Grad Cafe Analytics</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">API Reference</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/api.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="api-reference">
+<h1>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading"></a></h1>
+<p>The <code class="docutils literal notranslate"><span class="pre">clean.py</span></code> functionality is implemented in <code class="docutils literal notranslate"><span class="pre">clean_data.py</span></code> in this
+repository. <code class="docutils literal notranslate"><span class="pre">query_data.py</span></code> is shown as source rather than imported because its
+current design connects to PostgreSQL and executes queries during module import.</p>
+<section id="module-app.app">
+<span id="flask-application-and-routes"></span><h2>Flask application and routes<a class="headerlink" href="#module-app.app" title="Link to this heading"></a></h2>
+<p>Flask web application for live Grad Cafe applicant analysis.</p>
+<p>The application reads PostgreSQL through <code class="docutils literal notranslate"><span class="pre">DATABASE_URL</span></code>. <code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/pull-data</span></code>
+starts <code class="docutils literal notranslate"><span class="pre">pull_data.py</span></code> in a subprocess; <code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/update-analysis</span></code> only refreshes
+the analysis view and never starts a scrape.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="app.app.disable_browser_cache">
+<span class="sig-prename descclassname"><span class="pre">app.app.</span></span><span class="sig-name descname"><span class="pre">disable_browser_cache</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">response</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/app/app.html#disable_browser_cache"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#app.app.disable_browser_cache" title="Link to this definition"></a></dt>
+<dd><p>Prevent browsers from caching live analysis responses.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>response</strong> (<em>flask.Response</em>) – Response produced by a Flask route.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The same response with no-cache headers added.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>flask.Response</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="app.app.index">
+<span class="sig-prename descclassname"><span class="pre">app.app.</span></span><span class="sig-name descname"><span class="pre">index</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/app/app.html#index"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#app.app.index" title="Link to this definition"></a></dt>
+<dd><p>Query PostgreSQL and render the applicant analysis page.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Rendered HTML containing the percentage, Question 10,
+and Question 11 results.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>flask.Response</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>RuntimeError</strong> – If <code class="docutils literal notranslate"><span class="pre">DATABASE_URL</span></code> is not configured.</p></li>
+<li><p><strong>psycopg.Error</strong> – If a database query fails.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="app.app.pull_data">
+<span class="sig-prename descclassname"><span class="pre">app.app.</span></span><span class="sig-name descname"><span class="pre">pull_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/app/app.html#pull_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#app.app.pull_data" title="Link to this definition"></a></dt>
+<dd><p>Start the background data pull unless another pull is running.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Redirect to the analysis page when a
+pull starts, or a message with HTTP 409 when the app is already busy.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>flask.Response | tuple[str, int]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="app.app.update_analysis">
+<span class="sig-prename descclassname"><span class="pre">app.app.</span></span><span class="sig-name descname"><span class="pre">update_analysis</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/app/app.html#update_analysis"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#app.app.update_analysis" title="Link to this definition"></a></dt>
+<dd><p>Refresh the analysis page without starting a scrape.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Redirect when idle, or a message with
+HTTP 409 while a pull subprocess is running.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>flask.Response | tuple[str, int]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="scraper">
+<h2>Scraper<a class="headerlink" href="#scraper" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="scrape.GradCafeScraper">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">scrape.</span></span><span class="sig-name descname"><span class="pre">GradCafeScraper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'https://www.thegradcafe.com'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/scrape.html#GradCafeScraper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scrape.GradCafeScraper" title="Link to this definition"></a></dt>
+<dd><p>Fetch Grad Cafe pages and parse applicant rows.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>url</strong> (<em>str</em>) – Base URL for the Grad Cafe site.</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="scrape.GradCafeScraper.base_url">
+<span class="sig-name descname"><span class="pre">base_url</span></span><a class="headerlink" href="#scrape.GradCafeScraper.base_url" title="Link to this definition"></a></dt>
+<dd><p>Normalized site origin without a trailing slash.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="scrape.GradCafeScraper.survey_path">
+<span class="sig-name descname"><span class="pre">survey_path</span></span><a class="headerlink" href="#scrape.GradCafeScraper.survey_path" title="Link to this definition"></a></dt>
+<dd><p>Path to the admissions survey.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="scrape.GradCafeScraper.robots_url">
+<span class="sig-name descname"><span class="pre">robots_url</span></span><a class="headerlink" href="#scrape.GradCafeScraper.robots_url" title="Link to this definition"></a></dt>
+<dd><p>URL used to retrieve the site’s robots rules.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="scrape.GradCafeScraper.headers">
+<span class="sig-name descname"><span class="pre">headers</span></span><a class="headerlink" href="#scrape.GradCafeScraper.headers" title="Link to this definition"></a></dt>
+<dd><p>HTTP request headers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[str, str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="scrape.GradCafeScraper.http">
+<span class="sig-name descname"><span class="pre">http</span></span><a class="headerlink" href="#scrape.GradCafeScraper.http" title="Link to this definition"></a></dt>
+<dd><p>HTTP connection pool used for requests.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>urllib3.PoolManager</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="scrape.GradCafeScraper._build_url">
+<span class="sig-name descname"><span class="pre">_build_url</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">page</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query_text</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/scrape.html#GradCafeScraper._build_url"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scrape.GradCafeScraper._build_url" title="Link to this definition"></a></dt>
+<dd><p>Build a survey URL with optional page and search parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>page</strong> (<em>int</em>) – One-based result page number.</p></li>
+<li><p><strong>query_text</strong> (<em>str</em>) – Optional text passed as the <code class="docutils literal notranslate"><span class="pre">q</span></code> query parameter.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Absolute survey URL with URL-encoded query parameters.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="scrape.GradCafeScraper._check_robots_permission">
+<span class="sig-name descname"><span class="pre">_check_robots_permission</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">user_agent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'*'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/scrape.html#GradCafeScraper._check_robots_permission"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scrape.GradCafeScraper._check_robots_permission" title="Link to this definition"></a></dt>
+<dd><p>Check whether <code class="docutils literal notranslate"><span class="pre">user_agent</span></code> may fetch the first survey page.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>user_agent</strong> (<em>str</em>) – User-agent name evaluated by <code class="docutils literal notranslate"><span class="pre">robots.txt</span></code>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Whether scraping is permitted. Network/read errors default to
+the permissive fallback described in the implementation.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="scrape.GradCafeScraper._fetch_html">
+<span class="sig-name descname"><span class="pre">_fetch_html</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/scrape.html#GradCafeScraper._fetch_html"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scrape.GradCafeScraper._fetch_html" title="Link to this definition"></a></dt>
+<dd><p>Fetch page HTML and convert HTTP/network failures to <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>url</strong> (<em>str</em>) – Absolute URL to request.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Decoded response body for HTTP 200, otherwise <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="scrape.GradCafeScraper._next_page_url">
+<span class="sig-name descname"><span class="pre">_next_page_url</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">html_content</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/scrape.html#GradCafeScraper._next_page_url"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scrape.GradCafeScraper._next_page_url" title="Link to this definition"></a></dt>
+<dd><p>Find the absolute URL of a link labeled <code class="docutils literal notranslate"><span class="pre">Next</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>html_content</strong> (<em>str</em>) – HTML body for the current survey page.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Absolute next-page URL, or <code class="docutils literal notranslate"><span class="pre">None</span></code> when no link exists.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="scrape.GradCafeScraper.parse_admissions_data">
+<span class="sig-name descname"><span class="pre">parse_admissions_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">html_content</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/scrape.html#GradCafeScraper.parse_admissions_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scrape.GradCafeScraper.parse_admissions_data" title="Link to this definition"></a></dt>
+<dd><p>Parse applicant records from a Grad Cafe result page.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>html_content</strong> (<em>str</em><em> | </em><em>None</em>) – Survey HTML to parse.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Parsed applicants. Missing fields are omitted;
+values may include strings, floats, and URLs.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[dict[str, object]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="scrape.GradCafeScraper.scrape">
+<span class="sig-name descname"><span class="pre">scrape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">max_pages</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_row</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">html_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">html_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'applicant_data.json'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/scrape.html#GradCafeScraper.scrape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scrape.GradCafeScraper.scrape" title="Link to this definition"></a></dt>
+<dd><p>Collect records and save non-empty results as JSON.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>max_pages</strong> (<em>int</em>) – Maximum live pages to fetch.</p></li>
+<li><p><strong>target_row</strong> (<em>int</em><em> | </em><em>None</em>) – Optional maximum number of returned records.</p></li>
+<li><p><strong>html_file</strong> (<em>str</em><em> | </em><em>None</em>) – Optional saved HTML input path.</p></li>
+<li><p><strong>html_dir</strong> (<em>str</em><em> | </em><em>None</em>) – Optional directory of saved HTML files.</p></li>
+<li><p><strong>output_file</strong> (<em>str</em>) – JSON output path.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Parsed applicant records.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[dict[str, object]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scrape.clean_text">
+<span class="sig-prename descclassname"><span class="pre">scrape.</span></span><span class="sig-name descname"><span class="pre">clean_text</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/scrape.html#clean_text"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scrape.clean_text" title="Link to this definition"></a></dt>
+<dd><p>Unescape entities, strip tags/action labels, and normalize whitespace.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>val</strong> (<em>object</em><em> | </em><em>None</em>) – Raw text or HTML fragment.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Cleaned text, or an empty string for <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scrape.scrape_data">
+<span class="sig-prename descclassname"><span class="pre">scrape.</span></span><span class="sig-name descname"><span class="pre">scrape_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">max_pages</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_row</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">html_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">html_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/scrape.html#scrape_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scrape.scrape_data" title="Link to this definition"></a></dt>
+<dd><p>Collect unique applicant records from saved files or live pages.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>max_pages</strong> (<em>int</em>) – Maximum number of live pages to fetch.</p></li>
+<li><p><strong>target_row</strong> (<em>int</em><em> | </em><em>None</em>) – Stop after this many records when non-zero; also
+truncates the final result to this size.</p></li>
+<li><p><strong>html_file</strong> (<em>str</em><em> | </em><em>None</em>) – Optional single saved HTML page.</p></li>
+<li><p><strong>html_dir</strong> (<em>str</em><em> | </em><em>None</em>) – Optional directory of saved HTML pages. Only
+<code class="docutils literal notranslate"><span class="pre">.html</span></code> and <code class="docutils literal notranslate"><span class="pre">.htm</span></code> files are parsed.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Applicant records deduplicated by result URL, or
+by serialized record contents when a URL is absent.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[dict[str, object]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="scrape.save_data">
+<span class="sig-prename descclassname"><span class="pre">scrape.</span></span><span class="sig-name descname"><span class="pre">save_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filepath</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'applicant_data.json'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/scrape.html#save_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scrape.save_data" title="Link to this definition"></a></dt>
+<dd><p>Serialize applicant records as a UTF-8 JSON array.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>list</em><em>[</em><em>dict</em><em>[</em><em>str</em><em>, </em><em>object</em><em>]</em><em>]</em>) – Applicant records to serialize.</p></li>
+<li><p><strong>filepath</strong> (<em>str</em><em> | </em><em>os.PathLike</em><em>[</em><em>str</em><em>]</em>) – Destination JSON file.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-clean_data">
+<span id="database-and-etl"></span><h2>Database and ETL<a class="headerlink" href="#module-clean_data" title="Link to this heading"></a></h2>
+<p>Normalize applicant values and maintain the PostgreSQL applicants table.</p>
+<p>The command-line interface cleans stored text and numeric values by default. Pass
+<code class="docutils literal notranslate"><span class="pre">--reset</span></code> to delete all rows and restart the table’s serial primary key.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="clean_data.clean_applicant_data">
+<span class="sig-prename descclassname"><span class="pre">clean_data.</span></span><span class="sig-name descname"><span class="pre">clean_applicant_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">applicant</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/clean_data.html#clean_applicant_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#clean_data.clean_applicant_data" title="Link to this definition"></a></dt>
+<dd><p>Return a cleaned copy of an applicant row.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>applicant</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>object</em><em>]</em>) – Row keyed by applicants-table columns.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Copy with normalized text and numeric values.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[str, object]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="clean_data.clean_database">
+<span class="sig-prename descclassname"><span class="pre">clean_data.</span></span><span class="sig-name descname"><span class="pre">clean_database</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conn_info</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/clean_data.html#clean_database"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#clean_data.clean_database" title="Link to this definition"></a></dt>
+<dd><p>Clean all applicant rows and update them in one transaction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>conn_info</strong> (<em>str</em>) – PostgreSQL connection string.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="clean_data.reset_database">
+<span class="sig-prename descclassname"><span class="pre">clean_data.</span></span><span class="sig-name descname"><span class="pre">reset_database</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conn_info</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/clean_data.html#reset_database"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#clean_data.reset_database" title="Link to this definition"></a></dt>
+<dd><p>Delete all applicant rows and restart the serial primary key.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>conn_info</strong> (<em>str</em>) – PostgreSQL connection string.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p id="module-load_data">Convert scraped applicant records and insert them into PostgreSQL.</p>
+<p>The loader accepts current JSON keys and legacy spellings used by older Grad Cafe
+exports.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="load_data.load_data_to_db">
+<span class="sig-prename descclassname"><span class="pre">load_data.</span></span><span class="sig-name descname"><span class="pre">load_data_to_db</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">json_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conn_info</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/load_data.html#load_data_to_db"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#load_data.load_data_to_db" title="Link to this definition"></a></dt>
+<dd><p>Load every applicant in a JSON file into the applicants table.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>json_file</strong> (<em>str</em><em> | </em><em>os.PathLike</em><em>[</em><em>str</em><em>]</em>) – Path to a JSON array of records.</p></li>
+<li><p><strong>conn_info</strong> (<em>str</em>) – PostgreSQL connection string.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>OSError</strong> – If the JSON file cannot be opened.</p></li>
+<li><p><strong>json.JSONDecodeError</strong> – If the file does not contain valid JSON.</p></li>
+<li><p><strong>psycopg.Error</strong> – If PostgreSQL rejects the insert.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<p id="module-pull_data">Fetch newly posted Grad Cafe results and insert unseen records.</p>
+<p>The Flask application runs <code class="docutils literal notranslate"><span class="pre">main</span></code> in a background subprocess. Result URLs are
+used to skip records already stored and duplicate URLs on the same scrape.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="pull_data.main">
+<span class="sig-prename descclassname"><span class="pre">pull_data.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pull_data.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pull_data.main" title="Link to this definition"></a></dt>
+<dd><p>Load the configured URL set, scrape new records, and insert them.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> – If <code class="docutils literal notranslate"><span class="pre">DATABASE_URL</span></code> is not configured.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p id="module-create_database">Create a PostgreSQL connection and the applicants table when absent.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">main</span></code> function currently uses local connection defaults. Adjust them to
+match the target PostgreSQL instance before running the script.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="create_database.create_connection">
+<span class="sig-prename descclassname"><span class="pre">create_database.</span></span><span class="sig-name descname"><span class="pre">create_connection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">db_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db_user</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db_password</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db_host</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db_port</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/create_database.html#create_connection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#create_database.create_connection" title="Link to this definition"></a></dt>
+<dd><p>Connect to PostgreSQL using separate connection parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>db_name</strong> (<em>str</em>) – Database name.</p></li>
+<li><p><strong>db_user</strong> (<em>str</em>) – Database user.</p></li>
+<li><p><strong>db_password</strong> (<em>str</em>) – Password for <code class="docutils literal notranslate"><span class="pre">db_user</span></code>.</p></li>
+<li><p><strong>db_host</strong> (<em>str</em>) – Database host name or address.</p></li>
+<li><p><strong>db_port</strong> (<em>str</em><em> | </em><em>int</em>) – Database port.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Connection, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if
+psycopg2 raises <code class="docutils literal notranslate"><span class="pre">OperationalError</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>psycopg2.extensions.connection | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="create_database.create_table">
+<span class="sig-prename descclassname"><span class="pre">create_database.</span></span><span class="sig-name descname"><span class="pre">create_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">connection</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/create_database.html#create_table"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#create_database.create_table" title="Link to this definition"></a></dt>
+<dd><p>Create the applicants table if it does not already exist.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>connection</strong> (<em>psycopg2.extensions.connection</em>) – Open database connection.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Commits the DDL statement and closes the cursor and connection.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="create_database.main">
+<span class="sig-prename descclassname"><span class="pre">create_database.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/create_database.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#create_database.main" title="Link to this definition"></a></dt>
+<dd><p>Connect with the script defaults and create the applicants table.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="orm-model-and-queries">
+<h2>ORM model and queries<a class="headerlink" href="#orm-model-and-queries" title="Link to this heading"></a></h2>
+<p>During the docs build, <code class="docutils literal notranslate"><span class="pre">conf.py</span></code> supplies an in-memory SQLite URL only when no
+<code class="docutils literal notranslate"><span class="pre">DATABASE_URL</span></code> is already set. This lets autodoc import the model without a live
+PostgreSQL server; it does not alter the application configuration.</p>
+<p id="module-models">SQLAlchemy mapping and session factory for the applicants table.</p>
+<p><code class="docutils literal notranslate"><span class="pre">DATABASE_URL</span></code> selects the database when this module is imported. The Sphinx
+configuration supplies SQLite only as a documentation-build fallback.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="models.Applicant">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">models.</span></span><span class="sig-name descname"><span class="pre">Applicant</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/models.html#Applicant"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#models.Applicant" title="Link to this definition"></a></dt>
+<dd><p>ORM row for one Grad Cafe applicant result.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Applicant.p_id">
+<span class="sig-name descname"><span class="pre">p_id</span></span><a class="headerlink" href="#models.Applicant.p_id" title="Link to this definition"></a></dt>
+<dd><p>Database-generated primary key.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Applicant.program">
+<span class="sig-name descname"><span class="pre">program</span></span><a class="headerlink" href="#models.Applicant.program" title="Link to this definition"></a></dt>
+<dd><p>Program and institution text as submitted.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Applicant.comments">
+<span class="sig-name descname"><span class="pre">comments</span></span><a class="headerlink" href="#models.Applicant.comments" title="Link to this definition"></a></dt>
+<dd><p>Applicant’s optional comments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Applicant.date_added">
+<span class="sig-name descname"><span class="pre">date_added</span></span><a class="headerlink" href="#models.Applicant.date_added" title="Link to this definition"></a></dt>
+<dd><p>Date the result was posted.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>datetime.date | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Applicant.url">
+<span class="sig-name descname"><span class="pre">url</span></span><a class="headerlink" href="#models.Applicant.url" title="Link to this definition"></a></dt>
+<dd><p>Grad Cafe result URL used for deduplication.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Applicant.status">
+<span class="sig-name descname"><span class="pre">status</span></span><a class="headerlink" href="#models.Applicant.status" title="Link to this definition"></a></dt>
+<dd><p>Reported decision status.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Applicant.term">
+<span class="sig-name descname"><span class="pre">term</span></span><a class="headerlink" href="#models.Applicant.term" title="Link to this definition"></a></dt>
+<dd><p>Application term, such as <code class="docutils literal notranslate"><span class="pre">Fall</span> <span class="pre">2026</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Applicant.us_or_international">
+<span class="sig-name descname"><span class="pre">us_or_international</span></span><a class="headerlink" href="#models.Applicant.us_or_international" title="Link to this definition"></a></dt>
+<dd><p>Applicant nationality classification.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Applicant.gpa">
+<span class="sig-name descname"><span class="pre">gpa</span></span><a class="headerlink" href="#models.Applicant.gpa" title="Link to this definition"></a></dt>
+<dd><p>Reported GPA.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Applicant.gre">
+<span class="sig-name descname"><span class="pre">gre</span></span><a class="headerlink" href="#models.Applicant.gre" title="Link to this definition"></a></dt>
+<dd><p>Overall or quantitative GRE score.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Applicant.gre_v">
+<span class="sig-name descname"><span class="pre">gre_v</span></span><a class="headerlink" href="#models.Applicant.gre_v" title="Link to this definition"></a></dt>
+<dd><p>GRE verbal score.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Applicant.gre_aw">
+<span class="sig-name descname"><span class="pre">gre_aw</span></span><a class="headerlink" href="#models.Applicant.gre_aw" title="Link to this definition"></a></dt>
+<dd><p>GRE analytical-writing score.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Applicant.degree">
+<span class="sig-name descname"><span class="pre">degree</span></span><a class="headerlink" href="#models.Applicant.degree" title="Link to this definition"></a></dt>
+<dd><p>Degree category.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Applicant.llm_generated_program">
+<span class="sig-name descname"><span class="pre">llm_generated_program</span></span><a class="headerlink" href="#models.Applicant.llm_generated_program" title="Link to this definition"></a></dt>
+<dd><p>Normalized program category.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Applicant.llm_generated_university">
+<span class="sig-name descname"><span class="pre">llm_generated_university</span></span><a class="headerlink" href="#models.Applicant.llm_generated_university" title="Link to this definition"></a></dt>
+<dd><p>Normalized university name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="models.Base">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">models.</span></span><span class="sig-name descname"><span class="pre">Base</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#models.Base" title="Link to this definition"></a></dt>
+<dd><p>The base class of the class hierarchy.</p>
+<p>When called, it accepts no arguments and returns a new featureless
+instance that has no instance attributes and cannot be given any.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>kwargs</strong> (<em>Any</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p id="module-orm_queries">SQLAlchemy query functions for the Grad Cafe analysis questions.</p>
+<p>Each question accepts an active session and returns one analysis result. The
+<code class="docutils literal notranslate"><span class="pre">main</span></code> function prints a report using the shared session factory from <code class="docutils literal notranslate"><span class="pre">models</span></code>.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="orm_queries.main">
+<span class="sig-prename descclassname"><span class="pre">orm_queries.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/orm_queries.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#orm_queries.main" title="Link to this definition"></a></dt>
+<dd><p>Print the ORM analysis report using the configured session factory.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="orm_queries.question_1">
+<span class="sig-prename descclassname"><span class="pre">orm_queries.</span></span><span class="sig-name descname"><span class="pre">question_1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">session</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/orm_queries.html#question_1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#orm_queries.question_1" title="Link to this definition"></a></dt>
+<dd><p>Count applicants whose term is Fall 2026.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>session</strong> (<em>sqlalchemy.orm.Session</em>) – Active ORM session.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Number of matching applicant rows.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="orm_queries.question_10">
+<span class="sig-prename descclassname"><span class="pre">orm_queries.</span></span><span class="sig-name descname"><span class="pre">question_10</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">session</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/orm_queries.html#question_10"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#orm_queries.question_10" title="Link to this definition"></a></dt>
+<dd><p>Find the leading normalized university for Fall 2026 CS PhD applicants.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>session</strong> (<em>sqlalchemy.orm.Session</em>) – Active ORM session.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Zero or one university/count result row.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[sqlalchemy.engine.Row]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="orm_queries.question_11">
+<span class="sig-prename descclassname"><span class="pre">orm_queries.</span></span><span class="sig-name descname"><span class="pre">question_11</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">session</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/orm_queries.html#question_11"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#orm_queries.question_11" title="Link to this definition"></a></dt>
+<dd><p>Calculate average scores for Fall 2026 Master’s CS applicants.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>session</strong> (<em>sqlalchemy.orm.Session</em>) – Active ORM session.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Rounded
+GPA, GRE, verbal, and analytical-writing averages.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[float | None, float | None, float | None, float | None]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="orm_queries.question_4">
+<span class="sig-prename descclassname"><span class="pre">orm_queries.</span></span><span class="sig-name descname"><span class="pre">question_4</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">session</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/orm_queries.html#question_4"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#orm_queries.question_4" title="Link to this definition"></a></dt>
+<dd><p>Calculate average GPA for American Fall 2026 applicants.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>session</strong> (<em>sqlalchemy.orm.Session</em>) – Active ORM session.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>GPA rounded to two decimals, or <code class="docutils literal notranslate"><span class="pre">None</span></code> without values.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="orm_queries.question_5">
+<span class="sig-prename descclassname"><span class="pre">orm_queries.</span></span><span class="sig-name descname"><span class="pre">question_5</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">session</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/orm_queries.html#question_5"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#orm_queries.question_5" title="Link to this definition"></a></dt>
+<dd><p>Calculate the accepted percentage for Fall 2025 entries.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>session</strong> (<em>sqlalchemy.orm.Session</em>) – Active ORM session.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Accepted percentage rounded to two decimals, or <code class="docutils literal notranslate"><span class="pre">None</span></code>
+when the term has no entries.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="orm_queries.question_8">
+<span class="sig-prename descclassname"><span class="pre">orm_queries.</span></span><span class="sig-name descname"><span class="pre">question_8</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">session</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/orm_queries.html#question_8"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#orm_queries.question_8" title="Link to this definition"></a></dt>
+<dd><p>Count accepted Fall 2026 CS PhD rows at selected universities.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>session</strong> (<em>sqlalchemy.orm.Session</em>) – Active ORM session.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Number of rows matching the original program text.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="orm_queries.question_9">
+<span class="sig-prename descclassname"><span class="pre">orm_queries.</span></span><span class="sig-name descname"><span class="pre">question_9</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">session</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/orm_queries.html#question_9"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#orm_queries.question_9" title="Link to this definition"></a></dt>
+<dd><p>Count the Question 8 cohort using normalized LLM fields.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>session</strong> (<em>sqlalchemy.orm.Session</em>) – Active ORM session.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Number of rows matching normalized program and university fields.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="raw-sql-report">
+<h2>Raw SQL report<a class="headerlink" href="#raw-sql-report" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">query_data.py</span></code> runs queries at import time, so importing it during a docs build
+would open a database connection. The complete script is included below without
+execution:</p>
+<div class="literal-block-wrapper docutils container" id="id1">
+<div class="code-block-caption"><span class="caption-text">module_4/src/query_data.py</span><a class="headerlink" href="#id1" title="Link to this code"></a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Module 3: Query Applicant Data from Database</span>
+<span class="sd">Provides functionality to query applicant data from a PostgreSQL database.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">psycopg</span>
+
+<span class="n">connection</span> <span class="o">=</span> <span class="n">psycopg</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;DATABASE_URL&quot;</span><span class="p">))</span> <span class="c1"># ensure the DATABASE_URL environment variable is set</span>
+
+<span class="c1"># Execute queries to answer the questions defined above</span>
+<span class="k">with</span> <span class="n">connection</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span> <span class="k">as</span> <span class="n">cur</span><span class="p">:</span>
+    <span class="c1"># Question 1: Count of Fall 2026 applicants</span>
+    <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT COUNT(*) FROM applicants </span>
+<span class="s2">            WHERE term = &#39;Fall 2026&#39;</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="p">)</span>
+    <span class="n">fall_2026_applicant_count</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># Question 2: Percentage of international students among classified entries</span>
+    <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT ROUND(</span>
+<span class="s2">            100.0 * COUNT(*) FILTER (WHERE us_or_international = &#39;International&#39;)</span>
+<span class="s2">            / NULLIF(COUNT(*) FILTER (WHERE NULLIF(TRIM(us_or_international), &#39;&#39;) IS NOT NULL), 0),</span>
+<span class="s2">            2</span>
+<span class="s2">        )</span>
+<span class="s2">        FROM applicants</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="p">)</span>
+    <span class="n">percent_international</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># Question 3: Average GPA, GRE Quantitative, GRE Verbal, and GRE Analytical Writing scores of applicants who provide each metric</span>
+    <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT </span>
+<span class="s2">            ROUND(AVG(CASE WHEN gpa IS NOT NULL THEN gpa END)::numeric, 2),</span>
+<span class="s2">            ROUND(AVG(CASE WHEN gre IS NOT NULL THEN gre END)::numeric, 2),</span>
+<span class="s2">            ROUND(AVG(CASE WHEN gre_v IS NOT NULL THEN gre_v END)::numeric, 2),</span>
+<span class="s2">            ROUND(AVG(CASE WHEN gre_aw IS NOT NULL THEN gre_aw END)::numeric, 2)</span>
+<span class="s2">        FROM applicants</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="p">)</span>
+    <span class="n">average_gpa</span><span class="p">,</span> <span class="n">average_gre_quantitative</span><span class="p">,</span> <span class="n">average_gre_verbal</span><span class="p">,</span> <span class="n">average_gre_analytical_writing</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+
+    <span class="c1"># Question 4: What is the average GPA of American applicants who applied for Fall 2026?</span>
+    <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT ROUND(AVG(CASE WHEN gpa IS NOT NULL THEN gpa END)::numeric, 2)</span>
+<span class="s2">        FROM applicants</span>
+<span class="s2">        WHERE term = &#39;Fall 2026&#39; AND us_or_international = &#39;American&#39;</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="p">)</span>
+    <span class="n">average_gpa_american</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># Question 5: What percentage of Fall 2025 entries are acceptances?</span>
+    <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT ROUND(100.0 * SUM(CASE WHEN status ILIKE &#39;Accepted%&#39; THEN 1 ELSE 0 END) / COUNT(*), 2)</span>
+<span class="s2">        FROM applicants</span>
+<span class="s2">        WHERE term = &#39;Fall 2025&#39;</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="p">)</span>
+    <span class="n">percent_accepted_fall_2025</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># Question 6. What is the average GPA of accepted applicants who applied for Fall 2026?&quot;</span>
+    <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT ROUND(AVG(CASE WHEN gpa IS NOT NULL THEN gpa END)::numeric, 2)</span>
+<span class="s2">        FROM applicants</span>
+<span class="s2">        WHERE term = &#39;Fall 2026&#39; AND status ILIKE &#39;Accepted%&#39;</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="p">)</span>
+    <span class="n">average_gpa_accepted_fall_2026</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># Question 7: How many entries are from applicants who applied to Johns Hopkins University for a master&#39;s degree in Computer Science?</span>
+    <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT COUNT(*)</span>
+<span class="s2">        FROM applicants</span>
+<span class="s2">                WHERE (program ILIKE &#39;%Johns Hopkins University%&#39; OR program ILIKE &#39;%JHU%&#39;)</span>
+<span class="s2">                    AND program ILIKE &#39;%Computer Science%&#39;</span>
+<span class="s2">                    AND degree ILIKE &#39;%master%&#39;</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="p">)</span>
+    <span class="n">johns_hopkins_cs_masters_count</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+    
+    <span class="c1"># Question 8: How many Fall 2026 entries are acceptances from applicants applying for a PhD in Computer Science at one of the following universities?</span>
+    <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT COUNT(*)</span>
+<span class="s2">        FROM applicants</span>
+<span class="s2">        WHERE term = &#39;Fall 2026&#39;</span>
+<span class="s2">          AND status ILIKE &#39;Accepted%&#39;</span>
+<span class="s2">          AND program ILIKE &#39;%Computer Science%&#39;</span>
+<span class="s2">          AND (</span>
+<span class="s2">              program ILIKE &#39;</span><span class="si">%G</span><span class="s2">eorgetown University%&#39;</span>
+<span class="s2">              OR program ILIKE &#39;%Massachusetts Institute of Technology%&#39;</span>
+<span class="s2">              OR program ILIKE &#39;%MIT%&#39;</span>
+<span class="s2">              OR program ILIKE &#39;%Stanford University%&#39;</span>
+<span class="s2">              OR program ILIKE &#39;%Carnegie Mellon University%&#39;</span>
+<span class="s2">          )</span>
+<span class="s2">          AND degree = &#39;PhD&#39;</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="p">)</span>
+    <span class="n">fall_2026_accepted_cs_phd_count</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+    
+    <span class="c1"># Question 9: Repeat Question 8, but identify the university and program using llm_generated_program and llm_generated_university instead of the original downloaded university/program information.&quot;</span>
+    <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT COUNT(*)</span>
+<span class="s2">        FROM applicants</span>
+<span class="s2">        WHERE term = &#39;Fall 2026&#39;</span>
+<span class="s2">          AND status ILIKE &#39;Accepted%&#39;</span>
+<span class="s2">          AND llm_generated_program = &#39;Computer Science&#39;</span>
+<span class="s2">          AND llm_generated_university IN (&#39;Georgetown University&#39;, &#39;Massachusetts Institute of Technology&#39;, &#39;Stanford University&#39;, &#39;Carnegie Mellon University&#39;)</span>
+<span class="s2">          AND degree = &#39;PhD&#39;</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="p">)</span>
+    <span class="n">fall_2026_accepted_cs_phd_llm_count</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># Question 10: Which university has the highest number of Fall 2026 PhD Computer Science applicants?</span>
+    <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT llm_generated_university, COUNT(*) AS applicant_count</span>
+<span class="s2">        FROM applicants</span>
+<span class="s2">        WHERE term = &#39;Fall 2026&#39;</span>
+<span class="s2">          AND degree = &#39;PhD&#39;</span>
+<span class="s2">          AND llm_generated_program = &#39;Computer Science&#39;</span>
+<span class="s2">        GROUP BY llm_generated_university</span>
+<span class="s2">        ORDER BY applicant_count DESC, llm_generated_university</span>
+<span class="s2">        LIMIT 1</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="p">)</span>
+    <span class="n">fall_2026_cs_phd_university_counts</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+
+    <span class="c1"># Question 11: What are the average scores for Fall 2026 Master&#39;s Computer Science applicants?</span>
+    <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT</span>
+<span class="s2">            ROUND(AVG(gpa)::numeric, 2),</span>
+<span class="s2">            ROUND(AVG(gre)::numeric, 2),</span>
+<span class="s2">            ROUND(AVG(gre_v)::numeric, 2),</span>
+<span class="s2">            ROUND(AVG(gre_aw)::numeric, 2)</span>
+<span class="s2">        FROM applicants</span>
+<span class="s2">        WHERE term = &#39;Fall 2026&#39;</span>
+<span class="s2">          AND degree ILIKE &#39;%master%&#39;</span>
+<span class="s2">          AND program ILIKE &#39;%Computer Science%&#39;</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="p">)</span>
+    <span class="p">(</span>
+        <span class="n">fall_2026_cs_masters_average_gpa</span><span class="p">,</span>
+        <span class="n">fall_2026_cs_masters_average_gre</span><span class="p">,</span>
+        <span class="n">fall_2026_cs_masters_average_gre_v</span><span class="p">,</span>
+        <span class="n">fall_2026_cs_masters_average_gre_aw</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+
+    <span class="n">q9_difference</span> <span class="o">=</span> <span class="n">fall_2026_accepted_cs_phd_llm_count</span> <span class="o">-</span> <span class="n">fall_2026_accepted_cs_phd_count</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Q1: Fall 2026 applicant count: </span><span class="si">{</span><span class="n">fall_2026_applicant_count</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Q2: Percent international: </span><span class="si">{</span><span class="n">percent_international</span><span class="si">}</span><span class="s2">%&quot;</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Q3-1. Average GPA: </span><span class="si">{</span><span class="n">average_gpa</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Q3-2. Average GRE Quantitative: </span><span class="si">{</span><span class="n">average_gre_quantitative</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Q3-3. Average GRE Verbal: </span><span class="si">{</span><span class="n">average_gre_verbal</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Q3-4. Average GRE Analytical Writing: </span><span class="si">{</span><span class="n">average_gre_analytical_writing</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Q4: Average GPA (American applicants): </span><span class="si">{</span><span class="n">average_gpa_american</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Q5: Percent accepted Fall 2025: </span><span class="si">{</span><span class="n">percent_accepted_fall_2025</span><span class="si">}</span><span class="s2">%&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Q6: Average GPA accepted Fall 2026: </span><span class="si">{</span><span class="n">average_gpa_accepted_fall_2026</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Q7: Johns Hopkins CS Master&#39;s count: </span><span class="si">{</span><span class="n">johns_hopkins_cs_masters_count</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Q8: Fall 2026 accepted CS PhD count: </span><span class="si">{</span><span class="n">fall_2026_accepted_cs_phd_count</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Q9: Fall 2026 accepted CS PhD LLM count: </span><span class="si">{</span><span class="n">fall_2026_accepted_cs_phd_llm_count</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Q9-1. Original-field count: </span><span class="si">{</span><span class="n">fall_2026_accepted_cs_phd_count</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Q9-2. LLM-field count: </span><span class="si">{</span><span class="n">fall_2026_accepted_cs_phd_llm_count</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Q9-3. Difference: </span><span class="si">{</span><span class="n">q9_difference</span><span class="si">:</span><span class="s2">+d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Q10: University with highest applicant count in Fall 2026 PhD Computer Science: </span><span class="si">{</span><span class="n">fall_2026_cs_phd_university_counts</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">University: </span><span class="si">{</span><span class="n">fall_2026_cs_phd_university_counts</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Applicant count: </span><span class="si">{</span><span class="n">fall_2026_cs_phd_university_counts</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Q11: Fall 2026 CS Master&#39;s average statistics&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Average GPA: </span><span class="si">{</span><span class="n">fall_2026_cs_masters_average_gpa</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Average GRE Quantitative: </span><span class="si">{</span><span class="n">fall_2026_cs_masters_average_gre</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Average GRE Verbal: </span><span class="si">{</span><span class="n">fall_2026_cs_masters_average_gre_v</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Average GRE Analytical Writing: </span><span class="si">{</span><span class="n">fall_2026_cs_masters_average_gre_aw</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">connection</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="n">connection</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="testing.html" class="btn btn-neutral float-left" title="Testing Guide" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Sean Bae.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

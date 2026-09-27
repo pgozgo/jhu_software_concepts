@@ -1,0 +1,184 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Setup and Usage &mdash; Module 4 - The Grad Cafe Analytics 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Testing Guide" href="testing.html" />
+    <link rel="prev" title="Architecture" href="architecture.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Module 4 - The Grad Cafe Analytics
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Project guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Project Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Setup and Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#requirements">Requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#database-configuration">Database configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#run-the-web-application">Run the web application</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#run-tests-and-coverage">Run tests and coverage</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="testing.html">Testing Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Module 4 - The Grad Cafe Analytics</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Setup and Usage</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/setup.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="setup-and-usage">
+<h1>Setup and Usage<a class="headerlink" href="#setup-and-usage" title="Link to this heading"></a></h1>
+<section id="requirements">
+<h2>Requirements<a class="headerlink" href="#requirements" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Python 3.10 or later.</p></li>
+<li><p>PostgreSQL for the application and real database integration tests.</p></li>
+<li><p>The packages listed in <code class="docutils literal notranslate"><span class="pre">module_4/requirements.txt</span></code>.</p></li>
+</ul>
+<p>From the repository root, install dependencies with:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python -m pip install -r module_4/requirements.txt</span>
+</pre></div>
+</div>
+</section>
+<section id="database-configuration">
+<h2>Database configuration<a class="headerlink" href="#database-configuration" title="Link to this heading"></a></h2>
+<p>Set <code class="docutils literal notranslate"><span class="pre">DATABASE_URL</span></code> to a PostgreSQL connection string for the application and
+command-line scripts. For example, in PowerShell:</p>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="nv">$env:DATABASE_URL</span> <span class="p">=</span> <span class="s2">&quot;postgresql://postgres:password@127.0.0.1:5432/gradcafe&quot;</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">applicants</span></code> table must exist before loading records or opening the analysis
+page. <code class="docutils literal notranslate"><span class="pre">src/create_database.py</span></code> creates the table; its current <code class="docutils literal notranslate"><span class="pre">main()</span></code> contains
+local connection defaults, so adjust those values to match the local PostgreSQL
+server before running it:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">cd module_4</span>
+<span class="go">python src/create_database.py</span>
+</pre></div>
+</div>
+<p>Then, from <code class="docutils literal notranslate"><span class="pre">module_4</span></code>:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python src/load_data.py</span>
+<span class="go">python src/clean_data.py</span>
+<span class="go">python src/query_data.py</span>
+<span class="go">python src/orm_queries.py</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">clean_data.py</span></code> normalizes existing rows by default. Use <code class="docutils literal notranslate"><span class="pre">--reset</span></code> only when
+you intentionally want to delete all applicant rows and restart the primary key.</p>
+</section>
+<section id="run-the-web-application">
+<h2>Run the web application<a class="headerlink" href="#run-the-web-application" title="Link to this heading"></a></h2>
+<p>With <code class="docutils literal notranslate"><span class="pre">DATABASE_URL</span></code> set and the table populated, start the Flask server from the
+repository root:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">cd module_4</span>
+<span class="go">python src/app/app.py</span>
+</pre></div>
+</div>
+<p>Open <code class="docutils literal notranslate"><span class="pre">http://127.0.0.1:8080/</span></code>. <strong>Pull Data</strong> starts <code class="docutils literal notranslate"><span class="pre">src/pull_data.py</span></code> in a
+subprocess and requires network access to Grad Cafe. <strong>Update Analysis</strong> does not
+trigger a scrape.</p>
+</section>
+<section id="run-tests-and-coverage">
+<h2>Run tests and coverage<a class="headerlink" href="#run-tests-and-coverage" title="Link to this heading"></a></h2>
+<p>From the repository root:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python -m pytest -c module_4/pytest.ini</span>
+</pre></div>
+</div>
+<p>The configured run reports coverage and fails below 100%. The PostgreSQL-backed
+schema and end-to-end tests use <code class="docutils literal notranslate"><span class="pre">TEST_DATABASE_URL</span></code>; set it to a dedicated,
+disposable test database to run them locally. If it is unset, those tests skip.
+The GitHub Actions workflow starts PostgreSQL and supplies both database URLs.</p>
+<p>To save the terminal report in PowerShell:</p>
+<div class="highlight-powershell notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">-m</span> <span class="n">pytest</span> <span class="n">-c</span> <span class="n">module_4</span><span class="p">/</span><span class="n">pytest</span><span class="p">.</span><span class="n">ini</span> <span class="n">2</span><span class="p">&gt;&amp;</span><span class="n">1</span> <span class="p">|</span>
+    <span class="nb">Tee-Object</span> <span class="n">-FilePath</span> <span class="n">module_4</span><span class="p">/</span><span class="n">coverage_summary</span><span class="p">.</span><span class="n">txt</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="architecture.html" class="btn btn-neutral float-left" title="Architecture" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="testing.html" class="btn btn-neutral float-right" title="Testing Guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Sean Bae.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

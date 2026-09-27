@@ -1,0 +1,241 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pull_data &mdash; Module 4 - The Grad Cafe Analytics 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Module 4 - The Grad Cafe Analytics
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Project guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">Project Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../setup.html">Setup and Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../testing.html">Testing Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Module 4 - The Grad Cafe Analytics</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">pull_data</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for pull_data</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Fetch newly posted Grad Cafe results and insert unseen records.</span>
+
+<span class="sd">The Flask application runs ``main`` in a background subprocess. Result URLs are</span>
+<span class="sd">used to skip records already stored and duplicate URLs on the same scrape.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">psycopg</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">scrape</span><span class="w"> </span><span class="kn">import</span> <span class="n">GradCafeScraper</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">load_data</span><span class="w"> </span><span class="kn">import</span> <span class="n">_applicant_values</span>
+
+<span class="n">MAX_PAGES</span> <span class="o">=</span> <span class="mi">50</span>  <span class="c1"># safety cap so a stalled or unexpectedly large site can&#39;t scrape forever</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_existing_urls</span><span class="p">(</span><span class="n">conn_info</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Read non-null result URLs already present in PostgreSQL.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        conn_info (str): PostgreSQL connection string.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        set[str]: Existing result URLs.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Grad Cafe result URLs uniquely identify a record; use them to detect duplicates.</span>
+    <span class="k">with</span> <span class="n">psycopg</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">conn_info</span><span class="p">)</span> <span class="k">as</span> <span class="n">connection</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">connection</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span> <span class="k">as</span> <span class="n">cursor</span><span class="p">:</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;SELECT url FROM applicants WHERE url IS NOT NULL&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">{</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()}</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_fetch_new_records</span><span class="p">(</span><span class="n">existing_urls</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Scrape up to ``MAX_PAGES`` and retain records with unseen URLs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        existing_urls (set[str]): URLs already in the database. The set is</span>
+<span class="sd">            updated with each accepted URL to suppress within-pull duplicates.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list[dict[str, object]]: Newly parsed records with unique, non-empty URLs.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">scraper</span> <span class="o">=</span> <span class="n">GradCafeScraper</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">scraper</span><span class="o">.</span><span class="n">_check_robots_permission</span><span class="p">():</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[Pull Data] Robots.txt does not permit scraping; aborting.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[]</span>
+
+    <span class="n">new_records</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="n">scraper</span><span class="o">.</span><span class="n">_build_url</span><span class="p">(</span><span class="n">page</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">page</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">MAX_PAGES</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">html</span> <span class="o">=</span> <span class="n">scraper</span><span class="o">.</span><span class="n">_fetch_html</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">html</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Pull Data] Stopping at page </span><span class="si">{</span><span class="n">page</span><span class="si">}</span><span class="s2">: no HTML returned.&quot;</span><span class="p">)</span>
+            <span class="k">break</span>
+
+        <span class="n">page_records</span> <span class="o">=</span> <span class="n">scraper</span><span class="o">.</span><span class="n">parse_admissions_data</span><span class="p">(</span><span class="n">html</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">page_records</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Pull Data] No records parsed on page </span><span class="si">{</span><span class="n">page</span><span class="si">}</span><span class="s2">; stopping.&quot;</span><span class="p">)</span>
+            <span class="k">break</span>
+
+        <span class="n">unseen</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">page_records</span><span class="p">:</span>
+            <span class="n">record_url</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;url&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">record_url</span> <span class="ow">and</span> <span class="n">record_url</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">existing_urls</span><span class="p">:</span>
+                <span class="n">existing_urls</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">record_url</span><span class="p">)</span>
+                <span class="n">unseen</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+        <span class="n">new_records</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">unseen</span><span class="p">)</span>
+
+        <span class="c1"># Grad Cafe lists newest entries first, so a page with no new entries means</span>
+        <span class="c1"># everything after it is already in the database.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">unseen</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Pull Data] Page </span><span class="si">{</span><span class="n">page</span><span class="si">}</span><span class="s2"> contained no new entries; stopping.&quot;</span><span class="p">)</span>
+            <span class="k">break</span>
+
+        <span class="n">next_url</span> <span class="o">=</span> <span class="n">scraper</span><span class="o">.</span><span class="n">_next_page_url</span><span class="p">(</span><span class="n">html</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">next_url</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Pull Data] No further pages after page </span><span class="si">{</span><span class="n">page</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+            <span class="k">break</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="n">next_url</span>
+
+    <span class="k">return</span> <span class="n">new_records</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_insert_records</span><span class="p">(</span><span class="n">records</span><span class="p">,</span> <span class="n">conn_info</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Insert applicant records in one batch.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        records (list[dict[str, object]]): New applicant records to insert.</span>
+<span class="sd">        conn_info (str): PostgreSQL connection string.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        int: Number of inserted records, or zero for an empty input.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">records</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mi">0</span>
+    <span class="k">with</span> <span class="n">psycopg</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">conn_info</span><span class="p">)</span> <span class="k">as</span> <span class="n">connection</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">connection</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span> <span class="k">as</span> <span class="n">cursor</span><span class="p">:</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">executemany</span><span class="p">(</span>
+<span class="w">                </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                INSERT INTO applicants (</span>
+<span class="sd">                    program, comments, date_added, url, status, term,</span>
+<span class="sd">                    us_or_international, gpa, gre, gre_v, gre_aw, degree,</span>
+<span class="sd">                    llm_generated_program, llm_generated_university</span>
+<span class="sd">                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">_applicant_values</span><span class="p">(</span><span class="n">record</span><span class="p">)</span> <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">records</span><span class="p">),</span>
+            <span class="p">)</span>
+    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">records</span><span class="p">)</span>
+
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../api.html#pull_data.main">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load the configured URL set, scrape new records, and insert them.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        None</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        RuntimeError: If ``DATABASE_URL`` is not configured.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">conn_info</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;DATABASE_URL&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">conn_info</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;DATABASE_URL must be set before pulling data&quot;</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[Pull Data] Checking database for existing records ...&quot;</span><span class="p">)</span>
+    <span class="n">existing_urls</span> <span class="o">=</span> <span class="n">_existing_urls</span><span class="p">(</span><span class="n">conn_info</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Pull Data] </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">existing_urls</span><span class="p">)</span><span class="si">}</span><span class="s2"> existing records found.&quot;</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[Pull Data] Scraping Grad Cafe for new entries ...&quot;</span><span class="p">)</span>
+    <span class="n">new_records</span> <span class="o">=</span> <span class="n">_fetch_new_records</span><span class="p">(</span><span class="n">existing_urls</span><span class="p">)</span>
+
+    <span class="n">inserted</span> <span class="o">=</span> <span class="n">_insert_records</span><span class="p">(</span><span class="n">new_records</span><span class="p">,</span> <span class="n">conn_info</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Pull Data] Inserted </span><span class="si">{</span><span class="n">inserted</span><span class="si">}</span><span class="s2"> new applicants into the database.&quot;</span><span class="p">)</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+
+<span class="c1"># how to run:</span>
+<span class="c1"># python pull_data.py</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Sean Bae.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
