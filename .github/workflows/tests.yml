@@ -1,0 +1,42 @@
+name: Module 4 tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: gradcafe_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d gradcafe_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/gradcafe_test
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/gradcafe_test
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r module_4/src/requirements.txt pytest-cov
+      - name: Run tests and save coverage summary
+        run: |
+          set -o pipefail
+          python -m pytest -c module_4/pytest.ini | tee module_4/coverage_summary.txt
