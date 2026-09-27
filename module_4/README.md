@@ -4,20 +4,20 @@
 
 ```mermaid
 flowchart TD
-    A[GitHub event<br>.github/workflows/tests.yml: push / pull_request / workflow_dispatch] --> B[actions/checkout@v4]
-    B --> C[PostgreSQL 16 service<br>pg_isready health check]
-    C --> D[Workflow env<br>DATABASE_URL + TEST_DATABASE_URL]
-    D --> E[actions/setup-python@v5: Python 3.10<br>pip requirements + pytest-cov]
-    E --> F[python -m pytest<br>-c module_4/pytest.ini]
-    F --> G[Pytest config<br>testpaths + pythonpath + registered markers]
-    G --> H[Collect unittest.TestCase classes<br>from module_4/tests/test_*.py]
-    H --> I[Marked tests call app, database,<br>analysis, pull, and scraper code]
-    I --> J[pytest-cov measures<br>module_4/src]
-    J --> K{--cov-fail-under=100 met?}
-    K -- No --> L[Nonzero job result<br>term-missing identifies uncovered lines]
-    K -- Yes --> M[Successful test job]
-    J --> N[--cov-report=term-missing<br>prints coverage table]
-    N --> O[Workflow tee writes<br>module_4/coverage_summary.txt]
+    A["GitHub event<br/>tests.yml: push / pull_request / workflow_dispatch"] --> B["actions/checkout@v7"]
+    B --> C["PostgreSQL 16 service<br/>pg_isready health check"]
+    C --> D["Workflow env<br/>DATABASE_URL + TEST_DATABASE_URL"]
+    D --> E["actions/setup-python@v7: Python 3.10<br/>pip requirements + pytest-cov"]
+    E --> F["python -m pytest<br/>-c module_4/pytest.ini"]
+    F --> G["Pytest config<br/>testpaths + pythonpath + registered markers"]
+    G --> H["Collect unittest.TestCase classes<br/>from module_4/tests/test_*.py"]
+    H --> I["Marked tests call app, database,<br/>analysis, pull, and scraper code"]
+    I --> J["pytest-cov measures<br/>module_4/src"]
+    J --> K{"--cov-fail-under=100 met?"}
+    K -- No --> L["Nonzero job result<br/>term-missing identifies uncovered lines"]
+    K -- Yes --> M["Successful test job"]
+    J --> N["--cov-report=term-missing<br/>prints coverage table"]
+    N --> O["Workflow tee writes<br/>module_4/coverage_summary.txt"]
 ```
 
 ## Step-to-code map
