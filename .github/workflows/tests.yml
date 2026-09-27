@@ -35,7 +35,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r module_4/src/requirements.txt pytest-cov
+          python -m pip install -r module_4/requirements.txt
       - name: Run tests and save coverage summary
         run: |
           set -o pipefail
