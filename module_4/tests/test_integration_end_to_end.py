@@ -57,16 +57,16 @@ class TestPullUpdateRender(TestCase):
         self.test_url = prepare_test_database(self.database_url, "module4_e2e_test")
         self.original_database_url = os.environ.get("DATABASE_URL")
         os.environ["DATABASE_URL"] = self.test_url
-        self.original_pull_process = flask_app_module._pull_process
-        self.original_popen = flask_app_module.subprocess.Popen
-        flask_app_module._pull_process = None
-        flask_app_module.app.config.update(TESTING=True)
-        self.client = flask_app_module.app.test_client()
+        self.launcher = FakePullLauncher()
+        self.application = flask_app_module.create_app({
+            "TESTING": True,
+            "DATABASE_URL": self.test_url,
+            "PULL_DATA_RUNNER": self.launcher,
+        })
+        self.client = self.application.test_client()
 
-    # Restore app subprocess state and the database URL after the test.
+    # Restore the database URL after the integration test.
     def tearDown(self):
-        flask_app_module._pull_process = self.original_pull_process
-        flask_app_module.subprocess.Popen = self.original_popen
         if self.original_database_url is None:
             os.environ.pop("DATABASE_URL", None)
         else:
@@ -111,20 +111,20 @@ class TestPullUpdateRender(TestCase):
         scraper = FakeScraper(fake_records)
         original_scraper = pull_data.GradCafeScraper
         pull_data.GradCafeScraper = lambda: scraper
-        launcher = FakePullLauncher()
-        flask_app_module.subprocess.Popen = launcher
         try:
-            first_pull = self.client.post("/pull-data", follow_redirects=True)
-            repeated_pull = self.client.post("/pull-data", follow_redirects=True)
+            first_pull = self.client.post("/pull-data")
+            repeated_pull = self.client.post("/pull-data")
         finally:
             pull_data.GradCafeScraper = original_scraper
-        update_response = self.client.post("/update-analysis", follow_redirects=True)
-        analysis_response = self.client.get("/")
+        update_response = self.client.post("/update-analysis")
+        analysis_response = self.client.get("/analysis")
 
-        self.assertEqual(first_pull.status_code, 200)
-        self.assertEqual(repeated_pull.status_code, 200)
-        self.assertEqual(launcher.calls, 2)
+        self.assertEqual(first_pull.status_code, 202)
+        self.assertEqual(first_pull.get_json(), {"ok": True})
+        self.assertEqual(repeated_pull.status_code, 202)
+        self.assertEqual(self.launcher.calls, 2)
         self.assertEqual(update_response.status_code, 200)
+        self.assertEqual(update_response.get_json(), {"ok": True})
         self.assertEqual(analysis_response.status_code, 200)
         page = analysis_response.get_data(as_text=True)
         self.assertIn("50.00%", page)

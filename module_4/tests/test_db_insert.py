@@ -231,12 +231,49 @@ class TestDatabaseInsert(TestCase):
 
         self.assertEqual(columns, expected_columns)
         self.assertEqual(set(row), expected_columns)
+        self.assertTrue(all(row[field] is not None for field in expected_columns - {"p_id"}))
         self.assertEqual(row["date_added"], date(2026, 9, 12))
         self.assertEqual(row["program"], record["program"])
         self.assertEqual(row["url"], record["url"])
         self.assertEqual(row["gpa"], 3.85)
         self.assertEqual(row["gre"], 325.0)
         self.assertEqual(row["llm_generated_university"], "Stanford University")
+
+    # Verify a failed batch insert rolls back earlier rows in the same batch.
+    def test_failed_batch_insert_rolls_back(self):
+        with psycopg.connect(self.test_url) as connection:
+            connection.execute(
+                "ALTER TABLE applicants DROP CONSTRAINT IF EXISTS reject_test_url"
+            )
+            connection.execute(
+                "ALTER TABLE applicants ADD CONSTRAINT reject_test_url "
+                "CHECK (url <> 'reject-this-row')"
+            )
+        valid_record = {
+            "program": "Computer Science, Stanford University",
+            "date_added": "Added on Sep 12, 2026",
+            "url": "https://example.test/valid",
+        }
+        invalid_record = {
+            "program": "Computer Science, Stanford University",
+            "date_added": "Added on Sep 12, 2026",
+            "url": "reject-this-row",
+        }
+
+        with self.assertRaises(psycopg.Error):
+            try:
+                _insert_records([valid_record, invalid_record], self.test_url)
+            finally:
+                with psycopg.connect(self.test_url) as connection:
+                    connection.execute(
+                        "ALTER TABLE applicants DROP CONSTRAINT reject_test_url"
+                    )
+
+        with psycopg.connect(self.test_url) as connection:
+            row_count = connection.execute(
+                "SELECT COUNT(*) FROM applicants"
+            ).fetchone()[0]
+        self.assertEqual(row_count, 0)
 
 
 # Test duplicate filtering independently of PostgreSQL.

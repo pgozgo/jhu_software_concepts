@@ -16,7 +16,7 @@ import pytest
 
 import app.app as flask_app_module
 from test_db_insert import FakeConnection, FakeCursor, FakeDatabase as SourceFakeDatabase
-from test_flask_page import FakeDatabase as FlaskFakeDatabase
+from test_flask_page import FakeAnalysisQuery
 
 
 # Check percentage output through the Flask-rendered analysis page.
@@ -24,23 +24,13 @@ from test_flask_page import FakeDatabase as FlaskFakeDatabase
 class TestAnalysisFormat(TestCase):
     # Configure fake query results for the page template.
     def setUp(self):
-        self.original_database_url = os.environ.get("DATABASE_URL")
-        os.environ["DATABASE_URL"] = "postgresql://test/test"
-        self.original_connect = flask_app_module.psycopg.connect
-        flask_app_module.psycopg.connect = FlaskFakeDatabase().connect
-        self.original_pull_process = flask_app_module._pull_process
-        flask_app_module._pull_process = None
-        flask_app_module.app.config.update(TESTING=True)
-        self.client = flask_app_module.app.test_client()
-
-    # Restore the app connection and environment after the formatting test.
-    def tearDown(self):
-        flask_app_module.psycopg.connect = self.original_connect
-        flask_app_module._pull_process = self.original_pull_process
-        if self.original_database_url is None:
-            os.environ.pop("DATABASE_URL", None)
-        else:
-            os.environ["DATABASE_URL"] = self.original_database_url
+        self.application = flask_app_module.create_app({
+            "TESTING": True,
+            "SECRET_KEY": "test-secret",
+            "DATABASE_URL": "postgresql://test/test",
+            "ANALYSIS_QUERY": FakeAnalysisQuery(),
+        })
+        self.client = self.application.test_client()
 
     # Verify labels and percentage precision in the actual response.
     def test_percentage_format(self):

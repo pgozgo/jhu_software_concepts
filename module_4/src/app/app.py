@@ -10,20 +10,11 @@ import subprocess
 import sys
 import threading
 
-from flask import Flask, flash, redirect, render_template, url_for
+from flask import Flask, jsonify, render_template
 import psycopg
-
-app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY", os.urandom(24))
 
 PULL_DATA_SCRIPT = os.path.join(os.path.dirname(os.path.dirname(__file__)), "pull_data.py")
 
-# Tracks the running "Pull Data" subprocess (if any) so a second pull can't start concurrently.
-_pull_process = None
-_pull_lock = threading.Lock()
-
-
-@app.after_request
 def disable_browser_cache(response):
     """Prevent browsers from caching live analysis responses.
 
@@ -39,40 +30,39 @@ def disable_browser_cache(response):
     return response
 
 
-def _pull_in_progress():
+def _pull_in_progress(application):
     """Return whether the current pull subprocess is still running.
 
     Returns:
         bool: ``True`` while the process has no exit code; otherwise ``False``.
     """
-    global _pull_process
-    with _pull_lock:
-        return _pull_process is not None and _pull_process.poll() is None
+    state = application.extensions["pull_data_state"]
+    with state["lock"]:
+        process = state["process"]
+        return process is not None and process.poll() is None
 
 
-@app.route('/pull-data', methods=['POST'])
-def pull_data():
+def pull_data(application):
     """Start the background data pull unless another pull is running.
 
     Returns:
         flask.Response | tuple[str, int]: Redirect to the analysis page when a
         pull starts, or a message with HTTP 409 when the app is already busy.
     """
-    global _pull_process
-    with _pull_lock:
-        if _pull_process is not None and _pull_process.poll() is None:
-            return "A data pull is already running. Please wait for it to finish.", 409
+    state = application.extensions["pull_data_state"]
+    with state["lock"]:
+        process = state["process"]
+        if process is not None and process.poll() is None:
+            return jsonify(busy=True), 409
         else:
-            _pull_process = subprocess.Popen(
-                [sys.executable, PULL_DATA_SCRIPT],
-                env=os.environ.copy(),
+            runner = application.config["PULL_DATA_RUNNER"]
+            state["process"] = runner(
+                application.config["PULL_DATA_SCRIPT"], os.environ.copy()
             )
-            flash("Pull Data started. New Grad Cafe entries will be added shortly.", "info")
-    return redirect(url_for('index'))
+            return jsonify(ok=True), 202
 
 
-@app.route('/update-analysis', methods=['POST'])
-def update_analysis():
+def update_analysis(application):
     """Refresh the analysis page without starting a scrape.
 
     Returns:
@@ -80,18 +70,16 @@ def update_analysis():
         HTTP 409 while a pull subprocess is running.
     """
     # This never triggers a scrape; it only re-runs the analysis queries below.
-    if _pull_in_progress():
-        return (
-            "New data is currently being retrieved. Showing the latest results "
-            "already saved in the database.",
-            409,
-        )
-    flash("Analysis updated with the most current data in the database.", "info")
-    return redirect(url_for('index'))
+    if _pull_in_progress(application):
+        return jsonify(busy=True), 409
+    database_url = application.config.get("DATABASE_URL")
+    if not database_url:
+        raise RuntimeError("DATABASE_URL must be set before starting the app")
+    application.config["ANALYSIS_QUERY"](database_url)
+    return jsonify(ok=True), 200
 
 
-@app.route('/')
-def index():
+def index(application):
     """Query PostgreSQL and render the applicant analysis page.
 
     Returns:
@@ -102,10 +90,30 @@ def index():
         RuntimeError: If ``DATABASE_URL`` is not configured.
         psycopg.Error: If a database query fails.
     """
-    database_url = os.getenv("DATABASE_URL")
+    database_url = application.config.get("DATABASE_URL")
     if not database_url:
         raise RuntimeError("DATABASE_URL must be set before starting the app")
 
+    analysis_query = application.config["ANALYSIS_QUERY"]
+    analysis = analysis_query(database_url)
+
+    return render_template(
+        "index.html",
+        **analysis,
+        pull_running=_pull_in_progress(application),
+    )
+
+
+def run_analysis_queries(database_url):
+    """Query PostgreSQL for the values rendered on the analysis page.
+
+    Args:
+        database_url (str): PostgreSQL connection string.
+
+    Returns:
+        dict[str, object]: Template values for international percentage, Question
+        10 university counts, and Question 11 score averages.
+    """
     with psycopg.connect(database_url) as connection:
         with connection.cursor() as cursor:
             cursor.execute(
@@ -155,13 +163,71 @@ def index():
             )
             q11_averages = cursor.fetchone()
 
-    return render_template(
-        "index.html",
-        percent_international=percent_international,
-        q10_university_counts=q10_university_counts,
-        q11_averages=q11_averages,
-        pull_running=_pull_in_progress(),
+    return {
+        "percent_international": percent_international,
+        "q10_university_counts": q10_university_counts,
+        "q11_averages": q11_averages,
+    }
+
+
+def start_pull_process(script_path, environment):
+    """Launch the configured pull script as a child process.
+
+    Args:
+        script_path (str): Absolute path to ``pull_data.py``.
+        environment (dict[str, str]): Environment passed to the child process.
+
+    Returns:
+        subprocess.Popen: Handle used to determine whether a pull is running.
+    """
+    return subprocess.Popen([sys.executable, script_path], env=environment)
+
+
+def create_app(config=None):
+    """Create a Flask app with configurable database and replaceable services.
+
+    Args:
+        config (dict[str, object] | None): Flask configuration overrides. Tests
+            can supply ``DATABASE_URL``, ``ANALYSIS_QUERY``, and
+            ``PULL_DATA_RUNNER`` callables to avoid real PostgreSQL/network work.
+
+    Returns:
+        flask.Flask: Configured application with isolated pull-process state.
+    """
+    application = Flask(__name__)
+    application.config.update(
+        SECRET_KEY=os.getenv("SECRET_KEY", os.urandom(24)),
+        DATABASE_URL=os.getenv("DATABASE_URL"),
+        PULL_DATA_SCRIPT=PULL_DATA_SCRIPT,
+        ANALYSIS_QUERY=run_analysis_queries,
+        PULL_DATA_RUNNER=start_pull_process,
     )
+    if config:
+        application.config.update(config)
+    application.secret_key = application.config["SECRET_KEY"]
+    application.extensions["pull_data_state"] = {
+        "process": None,
+        "lock": threading.Lock(),
+    }
+    application.after_request(disable_browser_cache)
+    application.add_url_rule(
+        "/", endpoint="index", view_func=lambda: index(application)
+    )
+    application.add_url_rule(
+        "/analysis", endpoint="analysis", view_func=lambda: index(application)
+    )
+    application.add_url_rule(
+        "/pull-data", endpoint="pull_data",
+        view_func=lambda: pull_data(application), methods=["POST"]
+    )
+    application.add_url_rule(
+        "/update-analysis", endpoint="update_analysis",
+        view_func=lambda: update_analysis(application), methods=["POST"]
+    )
+    return application
+
+
+app = create_app()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)

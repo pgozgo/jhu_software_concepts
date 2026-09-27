@@ -65,11 +65,29 @@ class FakeDatabase:
     # Initialize a connection counter for route assertions.
     def __init__(self):
         self.connection_calls = 0
+        self.connection_args = []
 
     # Open a fake connection instead of a real PostgreSQL connection.
     def connect(self, *args, **kwargs):
         self.connection_calls += 1
+        self.connection_args.append((args, kwargs))
         return FakeConnection()
+
+
+# Return deterministic template data and record the configured database URL.
+class FakeAnalysisQuery:
+    # Initialize the list of database URLs passed to the query service.
+    def __init__(self):
+        self.database_urls = []
+
+    # Return the analysis values consumed by index().
+    def __call__(self, database_url):
+        self.database_urls.append(database_url)
+        return {
+            "percent_international": 12.5,
+            "q10_university_counts": [("Stanford University", 2)],
+            "q11_averages": (3.5, 320.0, 160.0, 4.0),
+        }
 
 
 # Group page tests with a fake PostgreSQL connection.
@@ -77,55 +95,107 @@ class FakeDatabase:
 class TestAnalysisPage(TestCase):
     # Configure the Flask client and predictable SQL result rows.
     def setUp(self):
-        self.original_database_url = os.environ.get("DATABASE_URL")
-        os.environ["DATABASE_URL"] = "postgresql://test/test"
-        self.original_connect = flask_app_module.psycopg.connect
-        self.database = FakeDatabase()
-        flask_app_module.psycopg.connect = self.database.connect
-        self.original_pull_process = flask_app_module._pull_process
-        flask_app_module._pull_process = None
-        flask_app_module.app.config.update(TESTING=True)
-        self.client = flask_app_module.app.test_client()
+        self.analysis_query = FakeAnalysisQuery()
+        self.application = flask_app_module.create_app({
+            "TESTING": True,
+            "SECRET_KEY": "test-secret",
+            "DATABASE_URL": "postgresql://test/test",
+            "ANALYSIS_QUERY": self.analysis_query,
+        })
+        self.client = self.application.test_client()
 
-    # Restore app and environment dependencies after each page test.
-    def tearDown(self):
-        flask_app_module.psycopg.connect = self.original_connect
-        flask_app_module._pull_process = self.original_pull_process
-        if self.original_database_url is None:
-            os.environ.pop("DATABASE_URL", None)
-        else:
-            os.environ["DATABASE_URL"] = self.original_database_url
+    # Verify the factory creates an independent app with config overrides.
+    def test_factory_config_override(self):
+        self.assertIsNot(self.application, flask_app_module.app)
+        self.assertEqual(self.application.config["DATABASE_URL"], "postgresql://test/test")
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.analysis_query.database_urls, ["postgresql://test/test"])
+
+    # Exercise the default pull launcher without starting a real subprocess.
+    def test_default_pull_runner(self):
+        calls = []
+        process = type("Process", (), {"poll": lambda self: 0})()
+        original_popen = flask_app_module.subprocess.Popen
+
+        # Record the command and return a completed process substitute.
+        def fake_popen(command, env):
+            calls.append((command, env))
+            return process
+
+        flask_app_module.subprocess.Popen = fake_popen
+        try:
+            response = self.client.post("/pull-data")
+        finally:
+            flask_app_module.subprocess.Popen = original_popen
+
+        self.assertEqual(response.status_code, 202)
+        self.assertEqual(response.get_json(), {"ok": True})
+        self.assertEqual(calls[0][0], [
+            flask_app_module.sys.executable,
+            flask_app_module.PULL_DATA_SCRIPT,
+        ])
+
+    # Verify the default query service connects using the factory's database URL.
+    def test_default_query_uses_configured_database(self):
+        database = FakeDatabase()
+        original_connect = flask_app_module.psycopg.connect
+        flask_app_module.psycopg.connect = database.connect
+        application = flask_app_module.create_app({
+            "TESTING": True,
+            "DATABASE_URL": "postgresql://override/test",
+        })
+        try:
+            response = application.test_client().get("/")
+            analysis = flask_app_module.run_analysis_queries("postgresql://override/test")
+        finally:
+            flask_app_module.psycopg.connect = original_connect
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(database.connection_args[0][0][0], "postgresql://override/test")
+        self.assertIs(application.config["ANALYSIS_QUERY"], flask_app_module.run_analysis_queries)
+        self.assertEqual(
+            set(analysis),
+            {"percent_international", "q10_university_counts", "q11_averages"},
+        )
 
     # Verify the routes and page components required by the assignment.
     def test_analysis_page(self):
         # This checks that all three URL paths are registered with Flask.
-        routes = {rule.rule for rule in flask_app_module.app.url_map.iter_rules()}
+        routes = {rule.rule for rule in self.application.url_map.iter_rules()}
 
-        # This request exercises the registered GET / analysis route.
-        response = self.client.get("/")
+        # This request exercises the assignment's GET /analysis route.
+        response = self.client.get("/analysis")
         page = response.get_data(as_text=True)
 
         self.assertEqual(response.status_code, 200)
-        self.assertTrue({"/", "/pull-data", "/update-analysis"}.issubset(routes))
-        self.assertIn("Applicant analysis", page)
+        self.assertTrue({"/", "/analysis", "/pull-data", "/update-analysis"}.issubset(routes))
+        self.assertIn("Analysis", page)
         self.assertIn("Pull Data", page)
         self.assertIn("Update Analysis", page)
+        self.assertIn('data-testid="pull-data-btn"', page)
+        self.assertIn('data-testid="update-analysis-btn"', page)
         self.assertIn("Question 10", page)
         self.assertIn("Question 11", page)
         self.assertIn("Answer:", page)
+        self.assertEqual(page.count("Answer:"), 6)
 
     # Verify analysis labels and percentage precision in the rendered page.
     def test_analysis_labels_and_percent(self):
-        page = self.client.get("/").get_data(as_text=True)
+        page = self.client.get("/analysis").get_data(as_text=True)
 
         self.assertIn("Answer:", page)
         self.assertIn("12.50%", page)
 
     # Check the analysis route rejects a missing database URL.
     def test_analysis_requires_database_url(self):
-        os.environ.pop("DATABASE_URL", None)
+        application = flask_app_module.create_app({
+            "TESTING": True,
+            "DATABASE_URL": None,
+            "ANALYSIS_QUERY": self.analysis_query,
+        })
         with self.assertRaisesRegex(RuntimeError, "DATABASE_URL"):
-            self.client.get("/")
+            application.test_client().get("/")
 
     # Exercise the Flask application's guarded command-line startup.
     def test_app_script_entry_point(self):
