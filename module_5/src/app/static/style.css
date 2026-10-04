@@ -1,0 +1,156 @@
+body {
+    margin: 0;
+    padding: 20px;
+    background: #f2f2f2;
+    color: #222;
+    font-family: Arial, sans-serif;
+}
+
+.site-header {
+    padding: 15px;
+    background: #333;
+}
+
+.brand {
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.status {
+    float: right;
+    color: #ddd;
+}
+
+.page-shell {
+    max-width: 900px;
+    margin: 30px auto;
+}
+
+.flash-messages {
+    list-style: none;
+    margin: 0 0 20px;
+    padding: 0;
+}
+
+.flash-messages li {
+    padding: 10px 15px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+    background: #e0f2fe;
+    color: #075985;
+}
+
+.flash-messages .flash-warning {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.pull-data-form {
+    margin: 0;
+}
+
+.intro-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 15px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.update-analysis-form {
+    margin: 0;
+}
+
+.update-analysis-button {
+    padding: 10px 20px;
+    font-size: 1rem;
+    font-weight: bold;
+    color: #075985;
+    background: white;
+    border: 2px solid #075985;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.pull-data-button {
+    padding: 10px 20px;
+    font-size: 1rem;
+    font-weight: bold;
+    color: white;
+    background: #075985;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.pull-data-button:disabled {
+    background: #94a3b8;
+    cursor: not-allowed;
+}
+
+.pull-data-description {
+    max-width: 600px;
+    margin-top: 10px;
+    color: #444;
+}
+
+.metric-grid,
+.result-grid,
+.split-section {
+    display: grid;
+    gap: 15px;
+}
+
+.metric-grid {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.result-grid {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.metric-card,
+.original-question {
+    padding: 20px;
+    background: white;
+    border: 1px solid #ccc;
+}
+
+.metric-card strong,
+.result-row strong,
+.university-row strong {
+    display: block;
+    margin-top: 8px;
+    color: #075985;
+    font-size: 1.4rem;
+}
+
+.result-row,
+.university-row {
+    padding: 10px 0;
+    border-bottom: 1px solid #ddd;
+}
+
+.split-section {
+    grid-template-columns: 1fr 1fr;
+    margin-top: 30px;
+}
+
+@media (max-width: 650px) {
+    .metric-grid,
+    .result-grid,
+    .split-section {
+        grid-template-columns: 1fr;
+    }
+
+    .status {
+        display: none;
+    }
+}

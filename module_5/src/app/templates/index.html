@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="intro">
+    <div class="intro-header">
+        <div>
+            <p class="eyebrow">Module 3 / Database analysis</p>
+            <h1>Applicant Analysis</h1>
+        </div>
+        <div class="action-buttons">
+            <form method="post" action="{{ url_for('pull_data') }}" class="pull-data-form">
+                <button type="submit" class="pull-data-button" data-testid="pull-data-btn" {% if pull_running %}disabled{% endif %}>
+                    {% if pull_running %}Pull Data (running...){% else %}Pull Data{% endif %}
+                </button>
+            </form>
+            <form method="post" action="{{ url_for('update_analysis') }}" class="update-analysis-form">
+                <button type="submit" class="update-analysis-button" data-testid="update-analysis-btn">Update Analysis</button>
+            </form>
+        </div>
+    </div>
+    <p class="pull-data-description">
+        Pull Data checks Grad Café for newly submitted application results and adds new
+        records to the database. Depending on the amount of new data available, this may
+        take some time.
+    </p>
+</section>
+
+<section class="section-block split-section">
+    <div class="original-question">
+        <p class="eyebrow">Question 2</p>
+        <h2>International applicants</h2>
+        <div class="result-row">
+            <span>Answer: Percent international</span>
+            <strong>{% if percent_international is not none %}{{ "%.2f"|format(percent_international) }}%{% else %}N/A{% endif %}</strong>
+        </div>
+    </div>
+    <div>
+        <p class="eyebrow">Question 10</p>
+        <h2>University with highest applicant count in Fall 2026 PhD Computer Science</h2>
+        <div class="university-list">
+            {% if q10_university_counts %}
+            {% set university, count = q10_university_counts[0] %}
+            <div class="university-row"><span>Answer: {{ university }}</span><strong>{{ count }}</strong></div>
+            {% else %}
+            <p class="empty-state">No matching university records.</p>
+            {% endif %}
+        </div>
+    </div>
+    <div class="original-question">
+        <p class="eyebrow">Question 11 - Average scores for Fall 2026 Master's Computer Science applicants</p>
+        <h2>Master's Computer Science averages</h2>
+        <div class="result-row"><span>Answer: GPA</span><strong>{{ q11_averages[0] }}</strong></div>
+        <div class="result-row"><span>Answer: GRE Quantitative</span><strong>{{ q11_averages[1] }}</strong></div>
+        <div class="result-row"><span>Answer: GRE Verbal</span><strong>{{ q11_averages[2] }}</strong></div>
+        <div class="result-row"><span>Answer: GRE Analytical Writing</span><strong>{{ q11_averages[3] }}</strong></div>
+    </div>
+</section>
+{% endblock %}
+
+<script>
+document.querySelectorAll(".pull-data-form, .update-analysis-form").forEach((form) => {
+    form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const button = form.querySelector("button[type='submit']");
+        const isPull = form.classList.contains("pull-data-form");
+        const originalLabel = button.textContent;
+        button.disabled = true;
+        button.textContent = isPull ? "Pull Data (starting...)" : "Updating Analysis...";
+
+        try {
+            const response = await fetch(form.action, {
+                method: "POST",
+                headers: { "Accept": "application/json" }
+            });
+            const result = await response.json();
+            if (!response.ok || !result.ok) {
+                throw new Error(result.message || "Request failed");
+            }
+            if (isPull) {
+                button.textContent = "Pull Data (running...)";
+            }
+            window.location.reload();
+        } catch (error) {
+            button.disabled = false;
+            button.textContent = originalLabel;
+        }
+    });
+});
+</script>
