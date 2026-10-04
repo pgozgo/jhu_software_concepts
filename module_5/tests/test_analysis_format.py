@@ -173,3 +173,10 @@ class TestRawQueries(TestCase):
 
         self.assertIn("Q1: Fall 2026 applicant count: 3", output.getvalue())
         self.assertTrue(connection.closed)
+        select_queries = [
+            statement
+            for statement, _ in cursor.statements
+            if "SELECT" in statement.upper()
+        ]
+        self.assertEqual(len(select_queries), 11)
+        self.assertTrue(all("LIMIT" in statement.upper() for statement in select_queries))

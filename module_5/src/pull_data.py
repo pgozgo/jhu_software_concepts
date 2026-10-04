@@ -12,6 +12,7 @@ import psycopg
 from create_database import database_url_from_environment
 from scrape import GradCafeScraper
 from load_data import _applicant_values
+from query_limits import iter_query_batches
 
 MAX_PAGES = 50  # safety cap so a stalled or unexpectedly large site can't scrape forever
 
@@ -24,11 +25,22 @@ def _existing_urls(conn_info):
     Returns:
         set[str]: Existing result URLs.
     """
-    # Grad Cafe result URLs uniquely identify a record; use them to detect duplicates.
+    # Read every stored URL in bounded batches to suppress duplicate inserts.
+    existing_urls = set()
     with psycopg.connect(conn_info) as connection:
         with connection.cursor() as cursor:
-            cursor.execute("SELECT url FROM applicants WHERE url IS NOT NULL")
-            return {row[0] for row in cursor.fetchall()}
+            for rows in iter_query_batches(
+                cursor,
+                """
+                SELECT p_id, url
+                FROM applicants
+                WHERE p_id > %s AND url IS NOT NULL
+                ORDER BY p_id
+                LIMIT %s
+                """,
+            ):
+                existing_urls.update(row[1] for row in rows)
+    return existing_urls
 
 def _fetch_new_records(existing_urls):
     """Scrape up to ``MAX_PAGES`` and retain records with unseen URLs.

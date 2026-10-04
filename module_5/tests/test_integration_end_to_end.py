@@ -11,6 +11,7 @@ import runpy
 import sys
 import tempfile
 from unittest import TestCase
+from unittest.mock import patch
 
 import psycopg
 import pytest
@@ -243,6 +244,12 @@ class TestScraper(TestCase):
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertIsNone(self.scraper._fetch_html("page-url"))
 
+    # Reject paths that cannot share a common filesystem root.
+    def test_safe_path_rejects_incompatible_roots(self):
+        with patch("scrape.os.path.commonpath", side_effect=ValueError("different roots")):
+            with self.assertRaisesRegex(ValueError, "selected working directory"):
+                scrape._resolve_path_within_root("inside.html", ".")
+
     # Verify text cleanup and elapsed-time formatting variants.
     def test_text_and_time_helpers(self):
         self.assertEqual(scrape.clean_text(None), "")
@@ -379,7 +386,7 @@ class TestScraper(TestCase):
             ):
                 with open(os.path.join(directory, name), "w", encoding="utf-8") as page:
                     page.write(contents)
-            records = scrape.scrape_data(html_dir=directory)
+            records = scrape.scrape_data(html_dir=directory, allowed_root=directory)
             self.assertEqual({record["program"] for record in records}, {"CS, Stanford", "CS, MIT"})
 
         class ErrorAwareScraper:
@@ -498,21 +505,33 @@ class TestScraper(TestCase):
     def test_scraper_cli(self):
         row = "<tr><td>Stanford</td><td>CS Accepted</td></tr>"
         with tempfile.TemporaryDirectory() as directory:
-            html_file = os.path.join(directory, "page.html")
-            output_file = os.path.join(directory, "output.json")
-            with open(html_file, "w", encoding="utf-8") as page:
-                page.write(f"<table>{row}</table>")
+            html_file = "page.html"
+            output_file = "output.json"
             original_argv = sys.argv
+            original_cwd = os.getcwd()
             try:
+                os.chdir(directory)
+                with open(html_file, "w", encoding="utf-8") as page:
+                    page.write(f"<table>{row}</table>")
                 sys.argv = ["scrape.py", "--file", html_file, "--output", output_file]
                 with contextlib.redirect_stdout(io.StringIO()):
                     runpy.run_path(scrape.__file__, run_name="__main__")
                 self.assertTrue(os.path.exists(output_file))
                 os.remove(output_file)
-                sys.argv = ["scrape.py", "--file", os.path.join(directory, "missing.html"),
-                            "--output", output_file]
+                sys.argv = ["scrape.py", "--file", "missing.html", "--output", output_file]
                 with contextlib.redirect_stdout(io.StringIO()):
                     runpy.run_path(scrape.__file__, run_name="__main__")
                 self.assertFalse(os.path.exists(output_file))
+
+                for arguments in (
+                    ["--file", "..\\outside.html", "--output", output_file],
+                    ["--file", html_file, "--output", "..\\escape.json"],
+                ):
+                    sys.argv = ["scrape.py", *arguments]
+                    with contextlib.redirect_stderr(io.StringIO()):
+                        with self.assertRaises(SystemExit) as error:
+                            runpy.run_path(scrape.__file__, run_name="__main__")
+                    self.assertEqual(error.exception.code, 2)
             finally:
                 sys.argv = original_argv
+                os.chdir(original_cwd)

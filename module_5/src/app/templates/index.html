@@ -36,11 +36,18 @@
     </div>
     <div>
         <p class="eyebrow">Question 10</p>
-        <h2>University with highest applicant count in Fall 2026 PhD Computer Science</h2>
+        <h2>Universities with highest applicant counts in Fall 2026 PhD Computer Science</h2>
+        <form method="get" action="{{ url_for('analysis') }}" class="result-limit-form">
+            <label for="result-limit">Show top universities (1–100)</label>
+            <input id="result-limit" name="limit" type="number" min="1" max="100"
+                   value="{{ query_limit }}" required>
+            <button type="submit">Apply</button>
+        </form>
         <div class="university-list">
             {% if q10_university_counts %}
-            {% set university, count = q10_university_counts[0] %}
+            {% for university, count in q10_university_counts %}
             <div class="university-row"><span>Answer: {{ university }}</span><strong>{{ count }}</strong></div>
+            {% endfor %}
             {% else %}
             <p class="empty-state">No matching university records.</p>
             {% endif %}

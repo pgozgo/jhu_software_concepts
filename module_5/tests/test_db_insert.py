@@ -27,6 +27,7 @@ import create_database
 import load_data
 import pull_data
 import scrape
+from query_limits import QUERY_BATCH_SIZE, iter_query_batches
 from pull_data import _insert_records
 
 
@@ -60,7 +61,10 @@ class FakeCursor:
 
     # Return all queued rows.
     def fetchall(self):
-        return self.rows or self.all_rows
+        queued_rows = self.rows or self.all_rows
+        self.rows = []
+        self.all_rows = []
+        return queued_rows
 
     # Record cursor closure.
     def close(self):
@@ -356,9 +360,37 @@ class TestPullRecordDeduplication(TestCase):
 # Exercise pull-data database helpers and its command-line entry point.
 @pytest.mark.db
 class TestPullData(TestCase):
+    # Check keyset pagination advances through every bounded batch.
+    def test_query_batch_pagination(self):
+        class PagedCursor:
+            def __init__(self):
+                self.pages = [[(5, "first")], [(150, "second")], []]
+                self.calls = []
+
+            def execute(self, statement, parameters):
+                self.calls.append((statement, parameters))
+
+            def fetchall(self):
+                return self.pages.pop(0)
+
+        cursor = PagedCursor()
+        statement = """
+            SELECT p_id, url FROM applicants
+            WHERE p_id > %s ORDER BY p_id LIMIT %s
+        """
+
+        self.assertEqual(
+            list(iter_query_batches(cursor, statement)),
+            [[(5, "first")], [(150, "second")]],
+        )
+        self.assertEqual(
+            [parameters for _, parameters in cursor.calls],
+            [(0, QUERY_BATCH_SIZE), (5, QUERY_BATCH_SIZE), (150, QUERY_BATCH_SIZE)],
+        )
+
     # Return saved URLs from the fake database connection.
     def test_existing_urls(self):
-        cursor = FakeCursor(all_rows=[("old-url",), ("other-url",)])
+        cursor = FakeCursor(all_rows=[(1, "old-url"), (2, "other-url")])
         database = FakeDatabase(FakeConnection(cursor))
         original_connect = pull_data.psycopg.connect
         pull_data.psycopg.connect = database.connect
@@ -367,6 +399,8 @@ class TestPullData(TestCase):
         finally:
             pull_data.psycopg.connect = original_connect
         self.assertEqual(urls, {"old-url", "other-url"})
+        self.assertIn("LIMIT %s", cursor.statements[0][0])
+        self.assertEqual(cursor.statements[0][1], (0, QUERY_BATCH_SIZE))
 
     # Check empty inserts avoid connecting and populated inserts map values.
     def test_insert_records(self):
@@ -392,7 +426,7 @@ class TestPullData(TestCase):
         original_connect = pull_data.psycopg.connect
         original_scraper = pull_data.GradCafeScraper
         original_scrape_class = scrape.GradCafeScraper
-        cursor = FakeCursor(all_rows=[("old-url",)])
+        cursor = FakeCursor(all_rows=[(1, "old-url")])
         database = FakeDatabase(FakeConnection(cursor))
         pull_data.psycopg.connect = database.connect
         pull_data.GradCafeScraper = lambda: FakeScraper([{"url": "new-url"}])
@@ -462,6 +496,8 @@ class TestCleanData(TestCase):
         self.assertEqual(len(cursor.batch_rows), 1)
         self.assertEqual(cursor.batch_rows[0][0], "CS")
         self.assertEqual(cursor.batch_rows[0][9], 3.9)
+        self.assertIn("LIMIT %s", cursor.statements[0][0])
+        self.assertEqual(cursor.statements[0][1], (0, QUERY_BATCH_SIZE))
         self.assertIn("TRUNCATE TABLE applicants RESTART IDENTITY", cursor.statements[-1][0])
         self.assertEqual(len(database.calls), 2)
 

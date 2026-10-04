@@ -10,6 +10,7 @@ import argparse
 import psycopg
 
 from create_database import database_url_from_environment
+from query_limits import iter_query_batches
 
 
 TEXT_COLUMNS = (
@@ -90,63 +91,69 @@ def clean_database(conn_info):
     Returns:
         None
     """
-    # Read, clean, and update all existing applicant records in one transaction.
+    # Process every row in bounded batches without truncating the work set.
+    cleaned_count = 0
     with psycopg.connect(conn_info) as connection:
         with connection.cursor() as cursor:
-            cursor.execute(
+            for rows in iter_query_batches(
+                cursor,
                 """
                 SELECT p_id, program, comments, url, status, term,
                        us_or_international, degree, llm_generated_program,
                        llm_generated_university, gpa, gre, gre_v, gre_aw
                 FROM applicants
-                """
-            )
-            columns = [description.name for description in cursor.description]
-            applicants = [
-                clean_applicant_data(dict(zip(columns, row)))
-                for row in cursor.fetchall()
-            ]
-
-            cursor.executemany(
-                """
-                UPDATE applicants
-                SET program = %s,
-                    comments = %s,
-                    url = %s,
-                    status = %s,
-                    term = %s,
-                    us_or_international = %s,
-                    degree = %s,
-                    llm_generated_program = %s,
-                    llm_generated_university = %s,
-                    gpa = %s,
-                    gre = %s,
-                    gre_v = %s,
-                    gre_aw = %s
-                WHERE p_id = %s
+                WHERE p_id > %s
+                ORDER BY p_id
+                LIMIT %s
                 """,
-                (
-                    (
-                        applicant["program"],
-                        applicant["comments"],
-                        applicant["url"],
-                        applicant["status"],
-                        applicant["term"],
-                        applicant["us_or_international"],
-                        applicant["degree"],
-                        applicant["llm_generated_program"],
-                        applicant["llm_generated_university"],
-                        applicant["gpa"],
-                        applicant["gre"],
-                        applicant["gre_v"],
-                        applicant["gre_aw"],
-                        applicant["p_id"],
-                    )
-                    for applicant in applicants
-                ),
-            )
+            ):
+                columns = [description.name for description in cursor.description]
+                applicants = [
+                    clean_applicant_data(dict(zip(columns, row)))
+                    for row in rows
+                ]
 
-    print(f"Cleaned {len(applicants)} applicants in the database.")
+                cursor.executemany(
+                    """
+                    UPDATE applicants
+                    SET program = %s,
+                        comments = %s,
+                        url = %s,
+                        status = %s,
+                        term = %s,
+                        us_or_international = %s,
+                        degree = %s,
+                        llm_generated_program = %s,
+                        llm_generated_university = %s,
+                        gpa = %s,
+                        gre = %s,
+                        gre_v = %s,
+                        gre_aw = %s
+                    WHERE p_id = %s
+                    """,
+                    (
+                        (
+                            applicant["program"],
+                            applicant["comments"],
+                            applicant["url"],
+                            applicant["status"],
+                            applicant["term"],
+                            applicant["us_or_international"],
+                            applicant["degree"],
+                            applicant["llm_generated_program"],
+                            applicant["llm_generated_university"],
+                            applicant["gpa"],
+                            applicant["gre"],
+                            applicant["gre_v"],
+                            applicant["gre_aw"],
+                            applicant["p_id"],
+                        )
+                        for applicant in applicants
+                    ),
+                )
+                cleaned_count += len(applicants)
+
+    print(f"Cleaned {cleaned_count} applicants in the database.")
 
 
 def reset_database(conn_info):

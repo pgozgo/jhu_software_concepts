@@ -67,6 +67,18 @@ body {
     margin: 0;
 }
 
+.result-limit-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0;
+}
+
+.result-limit-form input {
+    width: 5rem;
+    padding: 6px;
+}
+
 .update-analysis-button {
     padding: 10px 20px;
     font-size: 1rem;

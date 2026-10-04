@@ -10,7 +10,7 @@ import subprocess
 import sys
 import threading
 
-from flask import Flask, jsonify, render_template
+from flask import Flask, abort, jsonify, render_template, request
 import psycopg
 
 if __package__ in (None, ""):
@@ -18,6 +18,7 @@ if __package__ in (None, ""):
     sys.path.insert(0, source_directory)
 
 from create_database import database_url_from_environment  # pylint: disable=wrong-import-position
+from query_limits import DEFAULT_QUERY_LIMIT, clamp_query_limit
 
 PULL_DATA_SCRIPT = os.path.join(os.path.dirname(os.path.dirname(__file__)), "pull_data.py")
 
@@ -99,26 +100,34 @@ def index(application):
     if not database_url:
         raise RuntimeError("DATABASE_URL or DB_* settings must be set before starting the app")
 
+    try:
+        limit = clamp_query_limit(request.args.get("limit"))
+    except ValueError as error:
+        abort(400, description=str(error))
+
     analysis_query = application.config["ANALYSIS_QUERY"]
-    analysis = analysis_query(database_url)
+    analysis = analysis_query(database_url, limit)
 
     return render_template(
         "index.html",
         **analysis,
         pull_running=_pull_in_progress(application),
+        query_limit=limit,
     )
 
 
-def run_analysis_queries(database_url):
+def run_analysis_queries(database_url, limit=DEFAULT_QUERY_LIMIT):
     """Query PostgreSQL for the values rendered on the analysis page.
 
     Args:
         database_url (str): PostgreSQL connection string.
+        limit (int): Maximum number of universities to return.
 
     Returns:
         dict[str, object]: Template values for international percentage, Question
         10 university counts, and Question 11 score averages.
     """
+    limit = clamp_query_limit(limit)
     with psycopg.connect(database_url) as connection:
         with connection.cursor() as cursor:
             cursor.execute(
@@ -131,6 +140,7 @@ def run_analysis_queries(database_url):
                     2
                 )
                 FROM applicants
+                LIMIT 1
                 """
             )
             percent_international = cursor.fetchone()[0]
@@ -146,9 +156,9 @@ def run_analysis_queries(database_url):
                   AND program LIKE %s
                 GROUP BY university
                 ORDER BY applicant_count DESC, university
-                LIMIT 1
+                LIMIT %s
                 """,
-                ("Fall 2026", "PhD", "%Computer Science%", "%,%"),
+                ("Fall 2026", "PhD", "%Computer Science%", "%,%", limit),
             )
             q10_university_counts = cursor.fetchall()
 
@@ -163,6 +173,7 @@ def run_analysis_queries(database_url):
                 WHERE term = %s
                   AND degree ILIKE %s
                   AND program ILIKE %s
+                LIMIT 1
                 """,
                 ("Fall 2026", "%master%", "%Computer Science%"),
             )

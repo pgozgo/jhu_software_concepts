@@ -56,6 +56,37 @@ RE_COMMENT_IGNORE = re.compile(
     re.I
 )
 
+
+def _resolve_path_within_root(
+    filepath: str | os.PathLike[str],
+    allowed_root: str | os.PathLike[str],
+) -> str:
+    """Resolve a local path and reject paths that escape an allowed directory.
+
+    Args:
+        filepath (str | os.PathLike[str]): Requested input or output path.
+        allowed_root (str | os.PathLike[str]): Directory that contains the path.
+
+    Returns:
+        str: Resolved path contained by ``allowed_root``.
+
+    Raises:
+        ValueError: If the resolved path is outside the allowed directory.
+    """
+    root = os.path.realpath(os.fspath(allowed_root))
+    requested_path = os.fspath(filepath)
+    resolved_path = os.path.realpath(os.path.join(root, requested_path))
+    try:
+        common_path = os.path.commonpath((root, resolved_path))
+    except ValueError as error:
+        raise ValueError(
+            "path must remain inside the selected working directory"
+        ) from error
+    if os.path.normcase(common_path) != os.path.normcase(root):
+        raise ValueError("path must remain inside the selected working directory")
+    return resolved_path
+
+
 # Grad Cafe Web Scraper Class - Scrapes applicant admissions data from The Grad Cafe
 class GradCafeScraper:
     """Fetch Grad Cafe pages and parse applicant rows.
@@ -461,7 +492,7 @@ class GradCafeScraper:
         """
         records = scrape_data(
             max_pages=max_pages, target_row=target_row,
-            html_file=html_file, html_dir=html_dir
+            html_file=html_file, html_dir=html_dir, allowed_root=None
         )
         if records:
             save_data(records, output_file)
@@ -507,7 +538,13 @@ def _format_seconds(seconds):
         return f"{hours}h {mins:02d}m {secs:02d}s"
     return f"{mins:02d}m {secs:02d}s"
 
-def scrape_data(max_pages=1, target_row=100, html_file=None, html_dir=None):  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+def scrape_data(  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+    max_pages: int = 1,
+    target_row: int | None = 100,
+    html_file: str | None = None,
+    html_dir: str | None = None,
+    allowed_root: str | os.PathLike[str] | None = None,
+) -> list[dict[str, object]]:
     """Collect unique applicant records from saved files or live pages.
 
     Args:
@@ -517,6 +554,8 @@ def scrape_data(max_pages=1, target_row=100, html_file=None, html_dir=None):  # 
         html_file (str | None): Optional single saved HTML page.
         html_dir (str | None): Optional directory of saved HTML pages. Only
             ``.html`` and ``.htm`` files are parsed.
+        allowed_root (str | os.PathLike[str] | None): Optional directory that
+            confines saved-file inputs to prevent path traversal.
 
     Returns:
         list[dict[str, object]]: Applicant records deduplicated by result URL, or
@@ -560,6 +599,8 @@ def scrape_data(max_pages=1, target_row=100, html_file=None, html_dir=None):  # 
 
     # Case A: Saved HTML file - in case you have previously downloaded the page
     if html_file:
+        if allowed_root is not None:
+            html_file = _resolve_path_within_root(html_file, allowed_root)
         if os.path.exists(html_file):
             start_time = time.time()
             with open(html_file, "r", encoding="utf-8", errors="ignore") as f:
@@ -575,6 +616,8 @@ def scrape_data(max_pages=1, target_row=100, html_file=None, html_dir=None):  # 
 
     # Case B: Directory of saved HTML files - parallel multi-threaded parsing
     elif html_dir:
+        if allowed_root is not None:
+            html_dir = _resolve_path_within_root(html_dir, allowed_root)
         html_files = []
         for f_name in os.listdir(html_dir):
             if f_name.lower().endswith((".html", ".htm")):
@@ -589,6 +632,8 @@ def scrape_data(max_pages=1, target_row=100, html_file=None, html_dir=None):  # 
             Returns:
                 list[dict[str, object]]: Parsed applicant rows.
             """
+            if allowed_root is not None:
+                filepath = _resolve_path_within_root(filepath, html_dir)
             with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
                 return scraper.parse_admissions_data(f.read())
 
@@ -700,16 +745,24 @@ def scrape_data(max_pages=1, target_row=100, html_file=None, html_dir=None):  # 
     return records
 
 # save data to JSON file
-def save_data(data, filepath="applicant_data.json"):
+def save_data(
+    data: list[dict[str, object]],
+    filepath: str | os.PathLike[str] = "applicant_data.json",
+    allowed_root: str | os.PathLike[str] | None = None,
+) -> None:
     """Serialize applicant records as a UTF-8 JSON array.
 
     Args:
         data (list[dict[str, object]]): Applicant records to serialize.
         filepath (str | os.PathLike[str]): Destination JSON file.
+        allowed_root (str | os.PathLike[str] | None): Optional directory that
+            confines the output path.
 
     Returns:
         None
     """
+    if allowed_root is not None:
+        filepath = _resolve_path_within_root(filepath, allowed_root)
     with open(filepath, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
@@ -731,20 +784,30 @@ def main():
     parser.add_argument("--output", "-o", default="applicant_data.json", help="Output JSON path")
     args = parser.parse_args()
 
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    output_path = os.path.join(current_dir, args.output)
+    working_dir = os.getcwd()
+    try:
+        html_file = (
+            _resolve_path_within_root(args.file, working_dir) if args.file else None
+        )
+        html_dir = (
+            _resolve_path_within_root(args.dir, working_dir) if args.dir else None
+        )
+        output_path = _resolve_path_within_root(args.output, working_dir)
+    except ValueError as error:
+        parser.error(str(error))
 
     # Scrape data from Grad Cafe
     records = scrape_data(
         max_pages=args.pages,
         target_row=args.target_row,
-        html_file=args.file,
-        html_dir=args.dir,
+        html_file=html_file,
+        html_dir=html_dir,
+        allowed_root=working_dir,
     )
 
     # Save data into json file
     if records:
-        save_data(records, output_path)
+        save_data(records, output_path, allowed_root=working_dir)
 
 
 if __name__ == "__main__":

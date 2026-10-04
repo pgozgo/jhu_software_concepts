@@ -11,6 +11,7 @@ import pytest
 from flask import Flask
 
 import app.app as flask_app_module
+from query_limits import MAX_QUERY_LIMIT, clamp_query_limit
 
 
 # Return fixed query rows for Flask analysis-page requests.
@@ -19,10 +20,11 @@ class FakeCursor:
     def __init__(self):
         self.fetchone_rows = [(12.5,), (3.5, 320.0, 160.0, 4.0)]
         self.fetchall_rows = [("Stanford University", 2)]
+        self.statements = []
 
     # Accept SQL statements without contacting PostgreSQL.
     def execute(self, query, parameters=None):
-        return None
+        self.statements.append((query, parameters))
 
     # Return the next single-row analysis result.
     def fetchone(self):
@@ -66,12 +68,15 @@ class FakeDatabase:
     def __init__(self):
         self.connection_calls = 0
         self.connection_args = []
+        self.connections = []
 
     # Open a fake connection instead of a real PostgreSQL connection.
     def connect(self, *args, **kwargs):
         self.connection_calls += 1
         self.connection_args.append((args, kwargs))
-        return FakeConnection()
+        connection = FakeConnection()
+        self.connections.append(connection)
+        return connection
 
 
 # Return deterministic template data and record the configured database URL.
@@ -79,10 +84,12 @@ class FakeAnalysisQuery:
     # Initialize the list of database URLs passed to the query service.
     def __init__(self):
         self.database_urls = []
+        self.limits = []
 
     # Return the analysis values consumed by index().
-    def __call__(self, database_url):
+    def __call__(self, database_url, limit=1):
         self.database_urls.append(database_url)
+        self.limits.append(limit)
         return {
             "percent_international": 12.5,
             "q10_university_counts": [("Stanford University", 2)],
@@ -111,6 +118,7 @@ class TestAnalysisPage(TestCase):
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(self.analysis_query.database_urls, ["postgresql://test/test"])
+        self.assertEqual(self.analysis_query.limits, [1])
 
     # Exercise the default pull launcher without starting a real subprocess.
     def test_default_pull_runner(self):
@@ -158,6 +166,20 @@ class TestAnalysisPage(TestCase):
             set(analysis),
             {"percent_international", "q10_university_counts", "q11_averages"},
         )
+        first_connection_statements = database.connections[0].fake_cursor.statements
+        select_queries = [
+            (query, parameters)
+            for query, parameters in first_connection_statements
+            if "SELECT" in query.upper()
+        ]
+        limited_queries = [
+            (query, parameters)
+            for query, parameters in first_connection_statements
+            if "LIMIT %s" in query
+        ]
+        self.assertEqual(len(select_queries), 3)
+        self.assertTrue(all("LIMIT" in query.upper() for query, _ in select_queries))
+        self.assertEqual(limited_queries[0][1][-1], 1)
 
     # Verify the routes and page components required by the assignment.
     def test_analysis_page(self):
@@ -177,6 +199,8 @@ class TestAnalysisPage(TestCase):
         self.assertIn('data-testid="update-analysis-btn"', page)
         self.assertIn("Question 10", page)
         self.assertIn("Question 11", page)
+        self.assertIn('name="limit"', page)
+        self.assertIn('max="100"', page)
         self.assertIn("Answer:", page)
         self.assertEqual(page.count("Answer:"), 6)
 
@@ -186,6 +210,32 @@ class TestAnalysisPage(TestCase):
 
         self.assertIn("Answer:", page)
         self.assertIn("12.50%", page)
+
+    # Clamp user limits to the supported range and reject malformed values.
+    def test_result_limit_validation(self):
+        self.assertEqual(clamp_query_limit(None), 1)
+        self.assertEqual(clamp_query_limit("0"), 1)
+        self.assertEqual(clamp_query_limit(str(MAX_QUERY_LIMIT + 1)), MAX_QUERY_LIMIT)
+        self.assertEqual(clamp_query_limit("25"), 25)
+        with self.assertRaises(ValueError):
+            clamp_query_limit("not-a-number")
+        with self.assertRaises(ValueError):
+            clamp_query_limit(True)
+        with self.assertRaises(ValueError):
+            clamp_query_limit(1.5)
+
+    def test_requested_result_limit_is_clamped(self):
+        response = self.client.get("/analysis?limit=1000")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.analysis_query.limits, [MAX_QUERY_LIMIT])
+        self.assertIn(f'value="{MAX_QUERY_LIMIT}"', response.get_data(as_text=True))
+
+    def test_invalid_result_limit_is_rejected(self):
+        response = self.client.get("/analysis?limit=all")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(self.analysis_query.limits, [])
 
     # Check the analysis route rejects a missing database URL.
     def test_analysis_requires_database_url(self):

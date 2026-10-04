@@ -74,3 +74,46 @@ jobs:
         with:
           name: module-5-dependency-graph
           path: module_5/src/app/dependency.svg
+
+      - name: Install Snyk CLI
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          if [ -z "$SNYK_TOKEN" ]; then
+            echo "::notice::SNYK_TOKEN is not configured; Snyk CLI installation is skipped."
+            exit 0
+          fi
+          npm install --global snyk
+
+      - name: Run Snyk dependency scan
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          if [ -z "$SNYK_TOKEN" ]; then
+            echo "::notice::SNYK_TOKEN is not configured; skipping dependency scan."
+            exit 0
+          fi
+          snyk test --command=python
+
+      - name: Run Snyk Code scan
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          if [ -z "$SNYK_TOKEN" ]; then
+            echo "SNYK_TOKEN is not configured; code scan was not run." > snyk-code-output.txt
+            cat snyk-code-output.txt
+            exit 0
+          fi
+          set +e
+          snyk code test ./src 2>&1 | tee snyk-code-output.txt
+          scan_status=${PIPESTATUS[0]}
+          echo "snyk-code-test-exit-code=${scan_status}" | tee -a snyk-code-output.txt
+          exit "${scan_status}"
+
+      - name: Upload Snyk Code output
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: module-5-snyk-code-output
+          path: module_5/snyk-code-output.txt
+          if-no-files-found: warn

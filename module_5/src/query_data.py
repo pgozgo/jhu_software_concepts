@@ -15,6 +15,7 @@ with connection.cursor() as cur:
     cur.execute("""
         SELECT COUNT(*) FROM applicants
             WHERE term = 'Fall 2026'
+        LIMIT 1
     """)
     fall_2026_applicant_count = cur.fetchone()[0]
 
@@ -26,6 +27,7 @@ with connection.cursor() as cur:
             2
         )
         FROM applicants
+        LIMIT 1
     """)
     percent_international = cur.fetchone()[0]
 
@@ -38,6 +40,7 @@ with connection.cursor() as cur:
             ROUND(AVG(CASE WHEN gre_v IS NOT NULL THEN gre_v END)::numeric, 2),
             ROUND(AVG(CASE WHEN gre_aw IS NOT NULL THEN gre_aw END)::numeric, 2)
         FROM applicants
+            LIMIT 1
     """)
     (
         average_gpa,
@@ -51,6 +54,7 @@ with connection.cursor() as cur:
         SELECT ROUND(AVG(CASE WHEN gpa IS NOT NULL THEN gpa END)::numeric, 2)
         FROM applicants
         WHERE term = 'Fall 2026' AND us_or_international = 'American'
+        LIMIT 1
     """)
     average_gpa_american = cur.fetchone()[0]
 
@@ -59,6 +63,7 @@ with connection.cursor() as cur:
         SELECT ROUND(100.0 * SUM(CASE WHEN status ILIKE 'Accepted%' THEN 1 ELSE 0 END) / COUNT(*), 2)
         FROM applicants
         WHERE term = 'Fall 2025'
+        LIMIT 1
     """)
     percent_accepted_fall_2025 = cur.fetchone()[0]
 
@@ -67,6 +72,7 @@ with connection.cursor() as cur:
         SELECT ROUND(AVG(CASE WHEN gpa IS NOT NULL THEN gpa END)::numeric, 2)
         FROM applicants
         WHERE term = 'Fall 2026' AND status ILIKE 'Accepted%'
+        LIMIT 1
     """)
     average_gpa_accepted_fall_2026 = cur.fetchone()[0]
 
@@ -78,6 +84,7 @@ with connection.cursor() as cur:
                 WHERE (program ILIKE '%Johns Hopkins University%' OR program ILIKE '%JHU%')
                     AND program ILIKE '%Computer Science%'
                     AND degree ILIKE '%master%'
+        LIMIT 1
     """)
     johns_hopkins_cs_masters_count = cur.fetchone()[0]
 
@@ -97,6 +104,7 @@ with connection.cursor() as cur:
               OR program ILIKE '%Carnegie Mellon University%'
           )
           AND degree = 'PhD'
+        LIMIT 1
     """)
     fall_2026_accepted_cs_phd_count = cur.fetchone()[0]
 
@@ -111,6 +119,7 @@ with connection.cursor() as cur:
           AND llm_generated_program = 'Computer Science'
           AND llm_generated_university IN ('Georgetown University', 'Massachusetts Institute of Technology', 'Stanford University', 'Carnegie Mellon University')
           AND degree = 'PhD'
+        LIMIT 1
     """)
     fall_2026_accepted_cs_phd_llm_count = cur.fetchone()[0]
 
@@ -139,6 +148,7 @@ with connection.cursor() as cur:
         WHERE term = 'Fall 2026'
           AND degree ILIKE '%master%'
           AND program ILIKE '%Computer Science%'
+        LIMIT 1
     """)
     (
         fall_2026_cs_masters_average_gpa,

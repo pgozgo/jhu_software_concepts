@@ -17,6 +17,7 @@ setup(
         "orm_queries",
         "pull_data",
         "query_data",
+        "query_limits",
         "scrape",
     ],
     package_data={

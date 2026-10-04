@@ -1,0 +1,19 @@
+﻿
+Testing .\src ...
+
+
+╭──────────────────────────────────────────────╮
+│ Test Summary                                 │
+│                                              │
+│   Organization:      pgozgo                  │
+│   Test type:         Static code analysis    │
+│   Project path:      .\src                   │
+│                                              │
+│   Total issues:   0                          │
+╰──────────────────────────────────────────────╯
+    
+💡 Tip
+
+   To view ignored issues, use the --include-ignores option.
+                                                            
+

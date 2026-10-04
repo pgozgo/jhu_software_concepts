@@ -34,7 +34,7 @@ def question_1(session):
     """
     statement = select(func.count()).select_from(Applicant).where(
         Applicant.term == "Fall 2026"
-    )
+    ).limit(1)
     return session.scalar(statement)
 
 
@@ -53,7 +53,7 @@ def question_4(session):
             Applicant.us_or_international == "American",
             Applicant.gpa.is_not(None),
         )
-    )
+    ).limit(1)
     return _average(session.scalar(statement))
 
 
@@ -69,10 +69,10 @@ def question_5(session):
     """
     total_statement = select(func.count()).select_from(Applicant).where(
         Applicant.term == "Fall 2025"
-    )
+    ).limit(1)
     accepted_statement = select(func.count()).select_from(Applicant).where(
         and_(Applicant.term == "Fall 2025", Applicant.status.ilike("Accepted%"))
-    )
+    ).limit(1)
     total = session.scalar(total_statement)
     accepted = session.scalar(accepted_statement)
     return round(100 * accepted / total, 2) if total else None
@@ -102,7 +102,7 @@ def question_8(session):
             Applicant.degree == "PhD",
             universities,
         )
-    )
+    ).limit(1)
     return session.scalar(statement)
 
 
@@ -131,7 +131,7 @@ def question_9(session):
             Applicant.degree == "PhD",
             universities,
         )
-    )
+    ).limit(1)
     return session.scalar(statement)
 
 
@@ -181,7 +181,7 @@ def question_11(session):
             Applicant.degree.ilike("%master%"),
             Applicant.program.ilike("%Computer Science%"),
         )
-    )
+    ).limit(1)
     values = session.execute(statement).one()
     return tuple(_average(value) for value in values)
 

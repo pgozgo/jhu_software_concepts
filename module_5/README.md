@@ -58,11 +58,8 @@ For example, `-m web` runs tests marked `web`; `-m "db or integration"` runs eit
 
 ## Fresh Install
 
-For commands that use `Set-Location .\module_5`, start PowerShell from the
-repository root (the folder containing `module_5`). The install commands below
-then run from the `module_5` directory. Both methods install the dependencies from
-`requirements.txt` and install Module 5 in editable mode so its imports work
-consistently from the project directory and in tools such as tests and Flask.
+For commands that use `Set-Location .\module_5`, start PowerShell from the repository root (the folder containing `module_5`). The install commands below
+then run from the `module_5` directory. Both methods install the dependencies from `requirements.txt` and install Module 5 in editable mode so its imports work consistently from the project directory and in tools such as tests and Flask.
 
 ### Install with pip
 
@@ -86,33 +83,29 @@ uv pip install --python .venv\Scripts\python.exe --no-deps -e .
 ```
 
 `uv pip sync` makes the environment's installed packages match
-`requirements.txt`, removing packages not listed there. The final editable
-install adds this project itself to the environment.
+`requirements.txt`, removing packages not listed there. The final editable install adds this project itself to the environment.
 
 ### Run the app
 
-Configure PostgreSQL using the variables in `.env.example`, then copy it to
-`.env` and set local values. Do not commit `.env`. From `module_5`, start Flask:
+Configure PostgreSQL using the variables in `.env.example`, then copy it to `.env` and set local values. Do not commit `.env`. From `module_5`, start Flask:
 
 ```powershell
 Copy-Item .env.example .env
 .\.venv\Scripts\python.exe -m flask --app app.app run
 ```
 
-Open <http://127.0.0.1:5000/analysis>. The PostgreSQL service and database
-must be available for the analysis page to load its query results.
+Open <http://127.0.0.1:5000/analysis>. The PostgreSQL service and database must be available for the analysis page to load its query results.
+
+Question 10 accepts an optional `limit` query parameter for the number of top universities to display, for example `http://127.0.0.1:5000/analysis?limit=10`.
+The server defaults to 1, clamps numeric values to the range 1–100, and returns HTTP 400 for a non-integer value. Internal cleaning and URL-deduplication reads use keyset pagination in batches of at most 100 so the bound does not omit rows.
+The scraper CLI confines `--file`, `--dir`, and `--output` paths to its current working directory and rejects paths that resolve outside it.
 
 ## Sphinx Documentation
 
-The Sphinx source is in [`docs/source`](docs/source). It includes an overview and
-setup guide, a web/ETL/database architecture page, a testing guide, and an API
-reference generated with autodoc and Napoleon. The raw SQL script
-(`src/query_data.py`) is included as source because it connects to PostgreSQL and
+The Sphinx source is in [`docs/source`](docs/source). It includes an overview and setup guide, a web/ETL/database architecture page, a testing guide, and an API reference generated with autodoc and Napoleon. The raw SQL script (`src/query_data.py`) is included as source because it connects to PostgreSQL and
 executes queries when imported.
 
-To run PostgreSQL-backed tests, create the disposable test database, set
-`TEST_DATABASE_URL`, and run pytest as shown below. More detail is in
-[Running PostgreSQL tests](#running-postgresql-tests).
+To run PostgreSQL-backed tests, create the disposable test database, set `TEST_DATABASE_URL`, and run pytest as shown below. More detail is in [Running PostgreSQL tests](#running-postgresql-tests).
 
 ```powershell
 & 'C:\Program Files\PostgreSQL\18\bin\psql.exe' -U postgres -h localhost -c "CREATE DATABASE gradcafe_test"
@@ -122,16 +115,15 @@ $env:TEST_DATABASE_URL = "postgresql://postgres:YOURPASSWORD@localhost:5432/grad
 .\.venv\Scripts\python.exe -m pytest 2>&1 | Tee-Object -FilePath coverage_summary.txt
 ```
 
-Build or refresh the HTML documentation with the Sphinx make helper. In PowerShell,
-run the Windows batch file from the docs directory:
+Build or refresh the HTML documentation with the Sphinx make helper. 
+In PowerShell, run the Windows batch file from the docs directory:
 
 ```powershell
 cd module_5/docs
 .\make.bat html
 ```
 
-On Linux or macOS, run `make html` from `module_5/docs`. Both commands write the
-site to `module_5/docs/build/html/`.
+On Linux or macOS, run `make html` from `module_5/docs`. Both commands write the site to `module_5/docs/build/html/`.
 
 For a warning-strict build from the repository root, run:
 
@@ -140,14 +132,11 @@ python -m sphinx -b html -W module_5/docs/source module_5/docs/build/html
 ```
 
 The local landing page is [`docs/build/html/index.html`](docs/build/html/index.html).
-The root [`.readthedocs.yaml`](../.readthedocs.yaml) configures the Read the Docs
-build. Once this repository is registered as a Read the Docs project, the published
-site is available at https://module-4-the-grad-cafe-analytics-doc-test.readthedocs.io/en/latest/
+The root [`.readthedocs.yaml`](../.readthedocs.yaml) configures the Read the Docs build. Once this repository is registered as a Read the Docs project, the published site is available at https://module-4-the-grad-cafe-analytics-doc-test.readthedocs.io/en/latest/
 
 ## Local run
 
-Run this PowerShell block from `module_5` to run pytest with its configuration
-and replace the saved coverage report:
+Run this PowerShell block from `module_5` to run pytest with its configuration and replace the saved coverage report:
 
 ```powershell
 Set-Location .\module_5
@@ -155,10 +144,7 @@ Set-Location .\module_5
     Tee-Object -FilePath coverage_summary.txt
 ```
 
-Pytest prints the summary and `Tee-Object` replaces `coverage_summary.txt` with
-the same output. The most recent local run without `TEST_DATABASE_URL` reported
-`47 passed, 3 skipped` with 100% source coverage. The three database-dependent
-tests skip when that variable is unset.
+Pytest prints the summary and `Tee-Object` replaces `coverage_summary.txt` with the same output. The most recent local run without `TEST_DATABASE_URL` reported `52 passed, 3 skipped` with 100% source coverage. The three database-dependent tests skip when that variable is unset.
 
 To run one marker group locally, append a marker expression, for example:
 
@@ -180,10 +166,7 @@ To print progress while Pylint runs, add `--verbose`. It lists each file as it i
 .\.venv\Scripts\python.exe -m pylint src --verbose --reports=y --fail-under=10
 ```
 
-The expected result is `Your code has been rated at 10.00/10` with no messages;
-`--fail-under=10` makes Pylint return a failure if the score is lower. Pylint is
-run with its default configuration. Three kinds of inline `# pylint: disable=...`
-comments remain, each with a reason in the code:
+The expected result is `Your code has been rated at 10.00/10` with no messages; `--fail-under=10` makes Pylint return a failure if the score is lower. Pylint is run with its default configuration. Three kinds of inline `# pylint: disable=...` comments remain, each with a reason in the code:
 
 - `not-callable` in `orm_queries.py`: a known false positive for SQLAlchemy's dynamic `func` namespace.
 - `protected-access` in `pull_data.py` and `scrape.py`: the pull script and the module-level scrape function reuse the scraper's private helper methods.
@@ -191,8 +174,7 @@ comments remain, each with a reason in the code:
 
 ## Python dependency graph
 
-Install `pydeps` into the Module 5 virtual environment. Graphviz must also be
-installed separately; its `dot.exe` executable is required to render the graph.
+Install `pydeps` into the Module 5 virtual environment. Graphviz must also be installed separately; its `dot.exe` executable is required to render the graph.
 From the `module_5` directory, run:
 
 ```powershell
@@ -201,8 +183,7 @@ $env:Path = "C:\Program Files (x86)\Graphviz\bin;$env:Path"
 dot -V
 ```
 
-If Graphviz was installed in a different location, use that installation's
-`bin` directory in `PATH`. `dot -V` should print the Graphviz version. Then
+If Graphviz was installed in a different location, use that installation's `bin` directory in `PATH`. `dot -V` should print the Graphviz version. Then
 generate an SVG graph for the Flask app module:
 
 ```powershell
@@ -216,17 +197,13 @@ The graph is saved to `module_5\src\app\dependency.svg`. Open it with:
 Invoke-Item .\dependency.svg
 ```
 
-Run the `pydeps` command from `src\app` so it analyzes `app.py` in that
-directory. Keep the Graphviz `PATH` update and the `pydeps` command in the same
+Run the `pydeps` command from `src\app` so it analyzes `app.py` in that directory. Keep the Graphviz `PATH` update and the `pydeps` command in the same
 PowerShell session.
-The repository's `.github/workflows/ci.yml` also generates this SVG on each
-push, pull request, or manual workflow run and uploads it as the
-`module-5-dependency-graph` artifact.
+The repository's `.github/workflows/ci.yml` also generates this SVG on each push, pull request, or manual workflow run and uploads it as the `module-5-dependency-graph` artifact.
 
 ## Snyk dependency scan
 
-After installing and authenticating the Snyk CLI, run the dependency scan from
-`module_5` with the project virtual environment selected:
+After installing and authenticating the Snyk CLI, run the dependency scan from `module_5` with the project virtual environment selected:
 
 ```powershell
 $snyk = "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\Snyk.Snyk_Microsoft.Winget.Source_8wekyb3d8bbwe\snyk-win.exe"
@@ -236,32 +213,32 @@ $env:Path = "$(Split-Path $python);$env:Path"
 & $snyk test --command="$python"
 ```
 
-The latest recorded scan tested 54 dependencies and reported zero known
-vulnerable paths. Results can change as dependency advisories are updated. The
+The scan run on October 4, 2026 tested 54 dependencies and reported zero vulnerable paths. Results can change as dependency advisories are updated. The
 scan summary is saved in [`snyk-analysis.png`](snyk-analysis.png).
 
-`snyk code test .\src` is a separate source-code analysis scan. It could not be
-run for this project because Snyk Code is not enabled for the current Snyk
-organization (`pgozgo`, error `SNYK-CODE-0005`). An organization administrator
-must enable the feature or select an organization where it is enabled.
+Run source-code analysis separately with `snyk code test .\src`. The initial scan reported low path-traversal findings for saved-page inputs and the JSON
+output path. The CLI now resolves `--file`, `--dir`, and `--output` paths and rejects paths that escape its working directory, including symlinks that
+resolve outside it. The follow-up Snyk Code scan on October 4, 2026 reported zero open issues; its output is retained in [`snyk-code-output.txt`](snyk-code-output.txt). Rerun the scan after updates because Snyk findings and advisories can change.
+
+To enable both scans in CI, add a `SNYK_TOKEN` Actions repository secret. Without it, the workflow records that scanning was skipped. The dependency scan can fail the job if Snyk finds vulnerable dependencies. The workflow generates and uploads the dependency graph before scanning. A dependency finding or
+source-code finding fails CI, while the code-scan output and exit code are uploaded as the `module-5-snyk-code-output` artifact even when the scan fails.
 
 ## Database and PostgreSQL setup
 
 ### Database credentials and least-privilege roles
 
-The application reads `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and
-`DB_PASSWORD` from the process environment or a local `.env` file. Copy
-`.env.example` to `.env` and replace the placeholders with local values; `.env`
-is ignored by Git. Do not put real passwords in source files or commit `.env`.
-An explicitly set `DATABASE_URL` is honored as a complete connection string;
-otherwise, the app builds one from the `DB_*` variables.
+The proposed database roles, grants, and rationale are documented in [`permissions.pdf`](permissions.pdf), 
+with the editable text in [`permissions.txt`](permissions.txt). 
+The project owner reports running the grant statements against PostgreSQL, but the current workspace could not independently verify live privileges; follow the read-only verification steps in the permissions document before treating them as confirmed. A reported PostgreSQL-backed test run passed all 55 tests with no skips; that confirms the test database accepted its operations, but does not prove the application role's effective grants.
 
-The Flask app and ETL scripts use the runtime role in `DB_USER` and
-`DB_PASSWORD`. It should not be a superuser or table owner and must not receive
-`CREATE`, `ALTER`, or `DROP` privileges. The pull/clean/reset operations need
-`SELECT`, `INSERT`, `UPDATE`, `TRUNCATE`, and sequence `USAGE` on the
-`applicants` table. An administrator can create the roles and grant only those
-permissions (use `\password` in `psql` to set each password interactively):
+The application reads `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD` from the process environment or a local `.env` file. Copy
+`.env.example` to `.env` and replace the placeholders with local values; `.env` is ignored by Git. Do not put real passwords in source files or commit `.env`.
+An explicitly set `DATABASE_URL` is honored as a complete connection string; otherwise, the app builds one from the `DB_*` variables.
+
+The Flask app and ETL scripts use the runtime role in `DB_USER` and `DB_PASSWORD`. 
+It should not be a superuser or table owner and must not receive `CREATE`, `ALTER`, or `DROP` privileges. 
+The pull/clean/reset operations need `SELECT`, `INSERT`, `UPDATE`, `TRUNCATE`, and sequence `USAGE` on the `applicants` table. 
+An administrator can create the roles and grant only those permissions (use `\password` in `psql` to set each password interactively):
 
 ```sql
 CREATE DATABASE gradcafe;
@@ -277,13 +254,9 @@ GRANT USAGE ON SCHEMA public TO gradcafe_app;
 GRANT USAGE, CREATE ON SCHEMA public TO gradcafe_setup;
 ```
 
-Set `DB_SETUP_USER` and `DB_SETUP_PASSWORD` only when running
-`src/create_database.py` to initialize the table. Keep those setup credentials
-separate from the runtime role; never use them in the Flask app. From
-`module_5`, run `.\.venv\Scripts\python.exe src\create_database.py`. After the
-table exists, a database administrator should grant the runtime permissions,
-transfer ownership to the non-login `gradcafe_owner` role, and disable setup
-access:
+Set `DB_SETUP_USER` and `DB_SETUP_PASSWORD` only when running `src/create_database.py` to initialize the table. 
+Keep those setup credentials separate from the runtime role; never use them in the Flask app. 
+From `module_5`, run `.\.venv\Scripts\python.exe src\create_database.py`. After the table exists, a database administrator should grant the runtime permissions, transfer ownership to the non-login `gradcafe_owner` role, and disable setup access:
 
 ```sql
 GRANT SELECT, INSERT, UPDATE, TRUNCATE ON TABLE public.applicants TO gradcafe_app;
@@ -297,8 +270,7 @@ REVOKE CONNECT ON DATABASE gradcafe FROM gradcafe_setup;
 ALTER ROLE gradcafe_setup NOLOGIN;
 ```
 
-Existing tables may need the administrator to grant the listed table and
-sequence permissions explicitly.
+Existing tables may need the administrator to grant the listed table and sequence permissions explicitly.
 
 Create a local environment file in PowerShell with:
 
@@ -306,15 +278,14 @@ Create a local environment file in PowerShell with:
 Copy-Item .env.example .env
 ```
 
-Edit `.env` locally, then start the app or scripts normally. `python-dotenv`
-loads this file; variables already set in the process environment take
+Edit `.env` locally, then start the app or scripts normally. `python-dotenv` loads this file; variables already set in the process environment take
 precedence.
 
 ### Running PostgreSQL tests
 
 The `db` and `integration` tests use `TEST_DATABASE_URL`. Without it, those tests call `self.skipTest()` and are reported as skipped. The GitHub Actions workflow provides a PostgreSQL 16 service and sets both database URLs, allowing those tests to run in CI. The test setup uses dedicated test schemas; point `TEST_DATABASE_URL` only at a disposable test database.
 
-Without `TEST_DATABASE_URL`, the latest local run reports `47 passed, 3 skipped`.
+Without `TEST_DATABASE_URL`, the latest local run reports `52 passed, 3 skipped`.
 The skipped tests are:
 
 - `TestDatabaseInsert::test_failed_batch_insert_rolls_back`
@@ -331,8 +302,7 @@ $env:TEST_DATABASE_URL = "postgresql://postgres:YOURPASSWORD@localhost:5432/grad
 .\.venv\Scripts\python.exe -m pytest 2>&1 | Tee-Object -FilePath coverage_summary.txt
 ```
 
-With the database configured, those database-dependent tests run instead of
-skipping. If the database already exists, the `CREATE DATABASE` command errors
+With the database configured, those database-dependent tests run instead of skipping. If the database already exists, the `CREATE DATABASE` command errors
 and you can continue.
 
 Alternatively, start the same PostgreSQL 16 image that CI uses with Docker:
