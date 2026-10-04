@@ -347,5 +347,4 @@ The variable applies only to the current PowerShell session. If `python` resolve
 
 The Module 5 workflow is at repository root in `.github/workflows/ci.yml`.
 GitHub runs it after a push or pull request, or when manually dispatched. It installs Module 5, runs pytest, enforces the 10/10 Pylint threshold, generates the dependency graph, and uploads the SVG as a workflow artifact. The separate `.github/workflows/tests.yml` workflow continues to test Module 4.
-After a successful run, capture its green success status from the GitHub Actions page as `actions_success.png`; the workflow itself does not create a
-screenshot.
+After a successful run, capture its green success status from the GitHub Actions page as `actions_success.png`
