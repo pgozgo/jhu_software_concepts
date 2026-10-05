@@ -52,6 +52,9 @@ jobs:
           python -m pip install -r requirements.txt
           python -m pip install -e .
 
+      - name: Initialize Snyk Code output
+        run: echo "Snyk Code scan has not run yet." > snyk-code-output.txt
+
       - name: Run tests
         run: python -m pytest
 
@@ -116,4 +119,4 @@ jobs:
         with:
           name: module-5-snyk-code-output
           path: module_5/snyk-code-output.txt
-          if-no-files-found: warn
+          if-no-files-found: error

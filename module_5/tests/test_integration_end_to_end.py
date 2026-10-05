@@ -524,8 +524,8 @@ class TestScraper(TestCase):
                 self.assertFalse(os.path.exists(output_file))
 
                 for arguments in (
-                    ["--file", "..\\outside.html", "--output", output_file],
-                    ["--file", html_file, "--output", "..\\escape.json"],
+                    ["--file", os.path.join("..", "outside.html"), "--output", output_file],
+                    ["--file", html_file, "--output", os.path.join("..", "escape.json")],
                 ):
                     sys.argv = ["scrape.py", *arguments]
                     with contextlib.redirect_stderr(io.StringIO()):
