@@ -5,9 +5,7 @@ from importlib import import_module
 import json
 import os
 
-EXCHANGE = "tasks"
-QUEUE = "tasks_q"
-ROUTING_KEY = "tasks"
+from task_queue import EXCHANGE, ROUTING_KEY, declare_topology
 
 
 def _open_channel():
@@ -19,17 +17,7 @@ def _open_channel():
     )
     try:
         channel = connection.channel()
-        channel.exchange_declare(
-            exchange=EXCHANGE,
-            exchange_type="direct",
-            durable=True,
-        )
-        channel.queue_declare(queue=QUEUE, durable=True)
-        channel.queue_bind(
-            exchange=EXCHANGE,
-            queue=QUEUE,
-            routing_key=ROUTING_KEY,
-        )
+        declare_topology(channel)
     except Exception:
         connection.close()
         raise

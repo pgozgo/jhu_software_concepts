@@ -3,8 +3,8 @@
 Module 6 runs a Flask dashboard and an incremental scraper as separate
 services. RabbitMQ carries durable scrape jobs between them, and PostgreSQL
 stores applicant records. On first startup, Compose initializes the database
-schema and the worker loads the LLM-cleaned dataset from
-`src/data/applicant_data.json` into the named data volume.
+schema and the worker loads the LLM-cleaned dataset from the read-only
+`src/data/applicant_data.json` mount.
 
 ## Layout
 
@@ -13,6 +13,7 @@ module_6/
 ├── docker-compose.yml
 ├── setup.py
 ├── src/
+│   ├── task_queue.py
 │   ├── data/applicant_data.json
 │   ├── db/init.sql
 │   ├── db/load_data.py
@@ -35,7 +36,8 @@ module_6/
 The existing repository-level `.github/workflows` directory and `.gitignore`
 are already located at the repository root, alongside the module folders.
 Module 6's Compose-specific implementation is under `src/web`, `src/worker`,
-`src/db`, and `src/data`.
+`src/db`, and `src/data`; `src/task_queue.py` shares the durable RabbitMQ
+topology between publisher and consumer.
 
 ## Requirements checklist
 
@@ -44,8 +46,8 @@ Module 6's Compose-specific implementation is under `src/web`, `src/worker`,
 - **SHALL** provide separate `src/web/` and `src/worker/` services.
 - **SHALL** define exactly four Compose services: `web`, `worker`, `db`
   (PostgreSQL), and `rabbitmq`.
-- **SHALL** use Compose's private project network and named volumes for
-  PostgreSQL and the mounted `src/data/` folder.
+- **SHALL** use Compose's private project network, a named PostgreSQL data
+  volume, and a read-only worker mount of `src/data/`.
 - **SHALL** serve the Flask app on port `8080` (`127.0.0.1:8080` on the host).
 
 ### Should
@@ -85,8 +87,9 @@ repeated deliveries safe.
 The Compose project has exactly four services: `web`, `worker`, `db`, and
 `rabbitmq`. The PostgreSQL health check gates the worker's initial JSON load;
 the web service starts after both PostgreSQL and the worker are healthy.
-PostgreSQL retains its state in `postgres_data`, and the applicant JSON is
-stored in `applicant_data`, mounted at `/app/src/data`. Worker startup runs
+PostgreSQL retains its state in `postgres_data`, and the worker reads the
+applicant JSON from the read-only `src/data/` bind mount at `/app/src/data`.
+Worker startup runs
 `src/db/load_data.py`: when the PostgreSQL table is empty, it initializes it
 from the bundled JSON. If the database is already populated, initialization is
 skipped. The schema and loader use unique applicant URLs to avoid duplicates.
@@ -104,10 +107,32 @@ skipped. The schema and loader use unique applicant URLs to avoid duplicates.
 Both Python Dockerfiles run as an unprivileged `app` user. Compose's default
 project network is private to the project.
 
-The `postgres:16`, `rabbitmq:3-management`, and `python:3.13-slim` images are
-published in the [Docker Hub PostgreSQL registry](https://hub.docker.com/_/postgres),
-[Docker Hub RabbitMQ registry](https://hub.docker.com/_/rabbitmq), and
-[Docker Hub Python registry](https://hub.docker.com/_/python).
+The stack uses the published [`postgres:16`](https://hub.docker.com/_/postgres),
+[`rabbitmq:3-management`](https://hub.docker.com/_/rabbitmq), and
+[`python:3.13-slim`](https://hub.docker.com/_/python) base images. The Module 6
+web and worker images are on Docker Hub:
+
+- [Web image: `pgozgo/module6-web`](https://hub.docker.com/repository/docker/pgozgo/module6-web)
+- [Worker image: `pgozgo/module6-worker`](https://hub.docker.com/repository/docker/pgozgo/module6-worker)
+
+Both repositories currently publish the `v1` tag. To publish updates from
+GitHub Actions, add repository Actions secrets `DOCKERHUB_USERNAME` and
+`DOCKERHUB_TOKEN` (a Docker Hub access token), then open the repository's
+**Actions** tab, select **Publish Module 6 images to Docker Hub**, and choose
+**Run workflow**. It pushes `latest`, `v1`, and the commit SHA tag for both
+images.
+
+To pull the published `v1` images and run the stack without rebuilding:
+
+```powershell
+docker pull pgozgo/module6-web:v1
+docker pull pgozgo/module6-worker:v1
+docker compose pull web worker
+docker compose up -d --no-build
+```
+
+Use the normal `.env` setup above. For a local source build instead, use
+`docker compose up --build`.
 
 Only the dashboard and loopback-bound management UI are published to the host;
 PostgreSQL and AMQP remain private to the Compose network.
@@ -226,29 +251,46 @@ effective boundary.
 The service tests run without PostgreSQL or RabbitMQ. From this directory:
 
 ```powershell
-$env:PYTHONPATH = (Resolve-Path .\src).Path
 python -m pytest
 ```
+
+The pytest configuration enforces 100% statement coverage for the
+queue-facing service modules: Flask app and publisher, worker consumer, shared
+queue topology, and database loader. The scraper's HTML parsing and network
+helpers are outside that focused coverage gate.
 
 Run Pylint on the Module 6 service and database code:
 
 ```powershell
-python -m pylint src\web src\worker src\db --fail-under=10
+python -m pylint src\web src\worker src\db src\task_queue.py --fail-under=10
 ```
 
 No standalone lint-output report is included. To save a local report for
 submission or review, use:
 
 ```powershell
-python -m pylint src\web src\worker src\db --fail-under=10 2>&1 |
+python -m pylint src\web src\worker src\db src\task_queue.py --fail-under=10 2>&1 |
     Tee-Object pylint-evidence.txt
 if ($LASTEXITCODE -ne 0) { throw "Pylint failed with exit code $LASTEXITCODE" }
 ```
 
-The repository's `.github/workflows/module6.yml` workflow runs on pushes, pull
-requests, and manual dispatch. It installs the web/worker dependencies and
-pytest, runs the service tests, and validates the Compose configuration with
-`docker compose config --quiet`. The workflow does not run Pylint.
+The repository's `.github/workflows/module6.yml` workflow runs for Module 6
+pushes and pull requests, plus manual dispatch. It runs the 100% focused
+coverage gate, requires a 10.00 Pylint score, and validates the Compose
+configuration. The separate Module 5 CI workflow is scoped to Module 5 changes.
+The Docker Hub image publishing workflow is manually dispatched separately.
+
+### Submission files
+
+- [Module 6 report PDF](./module_6_report.pdf)
+- [Running dashboard screenshot](./dashboard-screenshot.png)
+- [RabbitMQ management screenshot](./rabbitmq-management-screenshot.png)
+- [GitHub repository](https://github.com/pgozgo/jhu_software_concepts/tree/main/module_6)
+- [Docker Hub web image](https://hub.docker.com/repository/docker/pgozgo/module6-web)
+- [Docker Hub worker image](https://hub.docker.com/repository/docker/pgozgo/module6-worker)
+
+The RabbitMQ capture shows the management login screen without credentials.
+The Docker Hub `v1` tags were verified as available for anonymous pulls.
 
 ## Lifecycle and troubleshooting
 

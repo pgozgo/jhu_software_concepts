@@ -55,10 +55,7 @@ def clamp_query_limit(value):
             or not LIMIT_PATTERN.fullmatch(value)
         ):
             raise ValueError("limit must be an integer")
-    try:
-        requested = int(value)
-    except ValueError as error:
-        raise ValueError("limit must be an integer") from error
+    requested = int(value)
     return min(MAX_QUERY_LIMIT, max(1, requested))
 
 

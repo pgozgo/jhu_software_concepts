@@ -9,6 +9,7 @@ setup(
     description="Containerized Grad Cafe applicant dashboard and ETL worker",
     package_dir={"": "src"},
     packages=find_packages(where="src"),
+    py_modules=["task_queue"],
     package_data={"web.app": ["templates/*.html", "static/*"]},
     python_requires=">=3.11",
     install_requires=[

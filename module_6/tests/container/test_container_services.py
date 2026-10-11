@@ -4,12 +4,16 @@ from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
+import runpy
+import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
 from unittest.mock import MagicMock, call, patch
 
 from psycopg import sql
+import psycopg
+from db import load_data as load_data_module
 from db.load_data import (
     ANALYTICS_VIEW_SQL,
     INGESTION_WATERMARKS_SQL,
@@ -17,16 +21,14 @@ from db.load_data import (
     applicant_values,
     load_data_to_db,
 )
-from web.app.app import create_app, run_analysis_queries
+from web.app.app import clamp_query_limit, create_app, run_analysis_queries
 from web.publisher import _open_channel, publish_task
 from worker.consumer import (
-    EXCHANGE,
-    QUEUE,
-    ROUTING_KEY,
     handle_scrape_new_data,
     main,
     process_delivery,
 )
+from task_queue import EXCHANGE, QUEUE, ROUTING_KEY
 from worker.etl.incremental_scraper import fetch_records_after_watermark
 
 
@@ -149,6 +151,20 @@ class ContainerServiceTests(unittest.TestCase):
             with patch.dict("sys.modules", {"pika": pika}):
                 with self.assertRaisesRegex(RuntimeError, "broker unavailable"):
                     publish_task("scrape_new_data")
+
+        connection.close.assert_called_once_with()
+
+    def test_open_channel_closes_connection_when_topology_setup_fails(self):
+        connection = MagicMock()
+        connection.channel.side_effect = RuntimeError("channel unavailable")
+        pika = SimpleNamespace(
+            URLParameters=MagicMock(return_value="rabbit-params"),
+            BlockingConnection=MagicMock(return_value=connection),
+        )
+        with patch.dict(os.environ, {"RABBITMQ_URL": "amqp://test/test"}):
+            with patch.dict("sys.modules", {"pika": pika}):
+                with self.assertRaisesRegex(RuntimeError, "channel unavailable"):
+                    _open_channel()
 
         connection.close.assert_called_once_with()
 
@@ -301,7 +317,15 @@ class ContainerServiceTests(unittest.TestCase):
         ])
 
     def test_delivery_rejects_invalid_or_unsupported_message(self):
-        for body in (b"not-json", b'{"kind":"unknown","payload":{}}'):
+        for body in (
+            b"not-json",
+            b"[]",
+            b'{"kind":"unknown","payload":{}}',
+            b'{"kind":"scrape_new_data","payload":null}',
+            b'{"kind":"scrape_new_data","payload":[]}',
+            b'{"kind":"scrape_new_data","payload":""}',
+            b'{"kind":1,"payload":{}}',
+        ):
             channel = MagicMock()
             process_delivery(channel, SimpleNamespace(delivery_tag=43), None, body)
             channel.basic_nack.assert_called_once_with(
@@ -309,6 +333,75 @@ class ContainerServiceTests(unittest.TestCase):
                 requeue=False,
             )
             channel.basic_ack.assert_not_called()
+
+    def test_worker_rejects_invalid_since_and_page_count(self):
+        connection = MagicMock()
+        cursor = connection.cursor.return_value
+        cursor.fetchone.return_value = ("100",)
+        for payload, message in (
+            ({"since": "invalid"}, "payload.since"),
+            ({"max_pages": 0}, "payload.max_pages"),
+            ({"max_pages": True}, "payload.max_pages"),
+        ):
+            with self.subTest(payload=payload):
+                with self.assertRaisesRegex(ValueError, message):
+                    handle_scrape_new_data(connection, payload)
+
+        self.assertEqual(cursor.close.call_count, 3)
+
+    def test_worker_scrape_without_result_urls_does_not_write_watermark(self):
+        connection = MagicMock()
+        cursor = connection.cursor.return_value
+        cursor.fetchone.return_value = ("100",)
+        with patch("worker.consumer.GradCafeScraper"):
+            with patch(
+                "worker.consumer.fetch_records_after_watermark",
+                return_value=([{"program": "No URL"}], 100),
+            ):
+                self.assertEqual(handle_scrape_new_data(connection, {}), 0)
+
+        cursor.executemany.assert_not_called()
+        self.assertFalse(any(
+            entry.args[0] == unittest.mock.ANY
+            and len(entry.args) > 1
+            and entry.args[1] == ("gradcafe", "100")
+            for entry in cursor.execute.call_args_list
+        ))
+
+    def test_recompute_analytics_refreshes_views(self):
+        connection = MagicMock()
+        cursor = connection.cursor.return_value
+
+        from worker.consumer import handle_recompute_analytics
+
+        handle_recompute_analytics(connection, {})
+
+        self.assertTrue(any(
+            entry.args[0].as_string().startswith("REFRESH MATERIALIZED VIEW")
+            for entry in cursor.execute.call_args_list
+        ))
+        cursor.close.assert_called_once_with()
+
+    def test_delivery_without_database_url_is_nacked(self):
+        channel = MagicMock()
+        with patch.dict(os.environ, {}, clear=True):
+            process_delivery(
+                channel,
+                SimpleNamespace(delivery_tag=44),
+                None,
+                b'{"kind":"recompute_analytics","payload":{}}',
+            )
+
+        channel.basic_nack.assert_called_once_with(
+            delivery_tag=44,
+            requeue=False,
+        )
+        channel.basic_ack.assert_not_called()
+
+    def test_worker_requires_rabbitmq_url(self):
+        with patch.dict(os.environ, {}, clear=True):
+            with self.assertRaisesRegex(RuntimeError, "RABBITMQ_URL"):
+                main()
 
     def test_worker_uses_manual_ack_and_prefetch_one(self):
         connection = MagicMock()
@@ -369,6 +462,125 @@ class ContainerServiceTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 503)
         self.assertEqual(response.get_json()["message"], "Could not queue request")
+
+    def test_update_analysis_broker_error_returns_service_unavailable(self):
+        publisher = MagicMock(side_effect=RuntimeError("broker unavailable"))
+        client = create_app({
+            "TESTING": True,
+            "PUBLISH_TASK": publisher,
+        }).test_client()
+
+        response = client.post("/update-analysis")
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.get_json()["message"], "Could not queue request")
+
+    def test_health_reports_missing_or_unavailable_database(self):
+        missing_database_client = create_app({
+            "TESTING": True,
+            "DATABASE_URL": None,
+        }).test_client()
+        self.assertEqual(missing_database_client.get("/health").status_code, 503)
+
+        unavailable_database_client = create_app({
+            "TESTING": True,
+            "DATABASE_URL": "postgresql://unused",
+        }).test_client()
+        with patch(
+            "web.app.app.psycopg.connect",
+            side_effect=psycopg.OperationalError("database unavailable"),
+        ):
+            response = unavailable_database_client.get("/health")
+        self.assertEqual(response.status_code, 503)
+
+        available_database_client = create_app({
+            "TESTING": True,
+            "DATABASE_URL": "postgresql://unused",
+        }).test_client()
+        with patch("web.app.app.psycopg.connect") as connect:
+            response = available_database_client.get("/health")
+        self.assertEqual(response.status_code, 200)
+        connect.assert_called_once_with("postgresql://unused", connect_timeout=2)
+
+    def test_analysis_requires_database_url_and_rejects_invalid_limits(self):
+        client = create_app({
+            "TESTING": True,
+            "DATABASE_URL": None,
+        }).test_client()
+        with self.assertRaisesRegex(RuntimeError, "DATABASE_URL"):
+            client.get("/analysis")
+
+        configured_client = create_app({
+            "TESTING": True,
+            "DATABASE_URL": "postgresql://unused",
+        }).test_client()
+        for value in ("letters", "１２", "9" * 65):
+            with self.subTest(value=value):
+                self.assertEqual(
+                    configured_client.get(f"/analysis?limit={value}").status_code,
+                    400,
+                )
+        for value in (True, 1.5, object()):
+            with self.subTest(invalid_limit=value):
+                with self.assertRaisesRegex(ValueError, "limit must be an integer"):
+                    clamp_query_limit(value)
+
+    def test_loader_rejects_non_array_json(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            data_file = Path(temp_dir) / "not-an-array.json"
+            data_file.write_text('{"url":"https://example.test/1"}', encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "JSON array"):
+                load_data_to_db(data_file, "postgresql://unused")
+
+    def test_loader_cli_uses_configured_file_and_database_url(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            data_file = Path(temp_dir) / "applicants.json"
+            data_file.write_text("[]", encoding="utf-8")
+            args = SimpleNamespace(file=data_file)
+            with patch("db.load_data.argparse.ArgumentParser.parse_args", return_value=args):
+                with patch.dict(os.environ, {"SETUP_DATABASE_URL": "postgresql://setup"}):
+                    with patch.object(load_data_module, "load_data_to_db", return_value=1) as load:
+                        load_data_module.main()
+            load.assert_called_once_with(data_file, "postgresql://setup")
+
+        with patch.dict(os.environ, {}, clear=True):
+            with patch(
+                "db.load_data.argparse.ArgumentParser.parse_args",
+                return_value=SimpleNamespace(file=Path("unused.json")),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "SETUP_DATABASE_URL"):
+                    load_data_module.main()
+
+    def test_loader_cli_entry_point_skips_existing_applicants(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            data_file = Path(temp_dir) / "applicants.json"
+            data_file.write_text("[]", encoding="utf-8")
+            connection = MagicMock()
+            cursor = connection.__enter__.return_value.cursor.return_value.__enter__.return_value
+            cursor.fetchone.return_value = (True,)
+            with patch.dict(os.environ, {"SETUP_DATABASE_URL": "postgresql://setup"}):
+                with patch("psycopg.connect", return_value=connection):
+                    with patch.object(sys, "argv", ["load_data.py", "--file", str(data_file)]):
+                        runpy.run_path(
+                            str(Path(load_data_module.__file__)),
+                            run_name="__main__",
+                        )
+
+    def test_worker_entry_point_starts_consumer(self):
+        connection = MagicMock()
+        pika = SimpleNamespace(
+            URLParameters=MagicMock(return_value="rabbit-params"),
+            BlockingConnection=MagicMock(return_value=connection),
+        )
+        with patch.dict(os.environ, {"RABBITMQ_URL": "amqp://test/test"}):
+            with patch.dict("sys.modules", {"pika": pika}):
+                runpy.run_path(
+                    str(Path(__file__).parents[2] / "src" / "worker" / "consumer.py"),
+                    run_name="__main__",
+                )
+
+        connection.channel.return_value.start_consuming.assert_called_once_with()
+        connection.close.assert_called_once_with()
 
     def test_dashboard_renders_analysis_results_and_status_banner(self):
         client = create_app({

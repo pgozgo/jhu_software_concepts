@@ -39,6 +39,7 @@ services:
     restart: unless-stopped
 
   web:
+    image: docker.io/pgozgo/module6-web:v1
     build:
       context: .
       dockerfile: src/web/Dockerfile
@@ -67,6 +68,7 @@ services:
     restart: unless-stopped
 
   worker:
+    image: docker.io/pgozgo/module6-worker:v1
     build:
       context: .
       dockerfile: src/worker/Dockerfile
@@ -92,7 +94,7 @@ services:
       db:
         condition: service_healthy
     volumes:
-      - applicant_data:/app/src/data
+      - ./src/data:/app/src/data:ro
     restart: unless-stopped
     healthcheck:
       test:
@@ -106,5 +108,4 @@ services:
       start_period: 120s
 
 volumes:
-  applicant_data:
   postgres_data:

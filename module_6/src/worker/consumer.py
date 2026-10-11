@@ -8,6 +8,7 @@ from pathlib import Path
 
 import psycopg
 from psycopg import sql
+from task_queue import QUEUE, declare_topology
 from db.load_data import (
     INGESTION_SOURCE,
     INSERT_SQL,
@@ -17,9 +18,6 @@ from db.load_data import (
 from worker.etl.incremental_scraper import GradCafeScraper, fetch_records_after_watermark
 
 LOGGER = logging.getLogger(__name__)
-EXCHANGE = "tasks"
-QUEUE = "tasks_q"
-ROUTING_KEY = "tasks"
 WATERMARK_READ_SQL = sql.SQL(
     """
     SELECT last_seen
@@ -42,21 +40,6 @@ WATERMARK_WRITE_SQL = sql.SQL(
     sql.Placeholder(),
     sql.Placeholder(),
 )
-
-
-def declare_topology(channel):
-    """Declare the durable direct task exchange and its bound queue."""
-    channel.exchange_declare(
-        exchange=EXCHANGE,
-        exchange_type="direct",
-        durable=True,
-    )
-    channel.queue_declare(queue=QUEUE, durable=True)
-    channel.queue_bind(
-        queue=QUEUE,
-        exchange=EXCHANGE,
-        routing_key=ROUTING_KEY,
-    )
 
 
 def handle_scrape_new_data(conn, payload):
@@ -118,7 +101,7 @@ TASK_HANDLERS = {
 }
 
 
-def process_delivery(
+def process_delivery(  # pylint: disable=too-many-arguments
     channel,
     method,
     properties,
@@ -134,7 +117,7 @@ def process_delivery(
         if not isinstance(message, dict):
             raise ValueError("task message must be a JSON object")
         kind = message.get("kind")
-        payload = message.get("payload") or {}
+        payload = message.get("payload", {})
         if not isinstance(payload, dict):
             raise ValueError("task payload must be a JSON object")
         if not isinstance(kind, str):
@@ -155,7 +138,7 @@ def process_delivery(
         with connection_factory(database_url) as database_connection:
             with database_connection.transaction():
                 handler(database_connection, payload)
-    except Exception:
+    except Exception:  # pylint: disable=broad-exception-caught
         LOGGER.exception("Task delivery %s failed", method.delivery_tag)
         channel.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
     else:

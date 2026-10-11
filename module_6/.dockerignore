@@ -1,0 +1,16 @@
+.git
+.venv
+py3-sphinx
+.pytest_cache
+.coverage
+coverage_summary.txt
+docs/build
+tests
+src/app
+src/data
+src/jhu_gradcafe_module5.egg-info
+src/llm_extend_applicant_data.json
+src/*.py
+!src/task_queue.py
+src/**/*.pyc
+src/**/__pycache__
