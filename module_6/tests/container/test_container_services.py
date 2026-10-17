@@ -29,7 +29,12 @@ from worker.consumer import (
     process_delivery,
 )
 from task_queue import EXCHANGE, QUEUE, ROUTING_KEY
-from worker.etl.incremental_scraper import fetch_records_after_watermark
+from worker.etl import incremental_scraper
+from worker.etl.incremental_scraper import (
+    GradCafeScraper,
+    fetch_records_after_watermark,
+    result_id,
+)
 
 
 class ContainerServiceTests(unittest.TestCase):
@@ -192,6 +197,172 @@ class ContainerServiceTests(unittest.TestCase):
         ])
         self.assertEqual(max_seen, 105)
         scraper._fetch_html.assert_called_once_with("https://example.test/results")
+
+    def test_scraper_result_id_rejects_missing_or_invalid_urls(self):
+        self.assertEqual(
+            result_id({"url": "https://example.test/result/123"}),
+            123,
+        )
+        self.assertIsNone(result_id({}))
+        self.assertIsNone(result_id({"url": None}))
+        self.assertIsNone(result_id({"url": "https://example.test/result/no-id"}))
+
+    def test_scraper_builds_urls_and_follows_next_links(self):
+        scraper = GradCafeScraper("https://example.test/")
+
+        self.assertEqual(
+            scraper._build_url(2, "computer science"),
+            "https://example.test/survey/index.php?page=2&q=computer+science",
+        )
+        self.assertEqual(
+            scraper._next_page_url(
+                '<a href="/survey?page=2">Next</a>'
+            ),
+            "https://example.test/survey?page=2",
+        )
+        self.assertIsNone(scraper._next_page_url("<p>End</p>"))
+
+    def test_scraper_checks_robots_and_fetches_html(self):
+        scraper = GradCafeScraper("https://example.test")
+        scraper.http = MagicMock()
+        scraper.http.request.return_value = SimpleNamespace(
+            status=200,
+            data=b"User-agent: *\nDisallow: /survey/index.php",
+        )
+        self.assertFalse(scraper._check_robots_permission())
+
+        scraper.http.request.return_value = SimpleNamespace(
+            status=200,
+            data=b"User-agent: *\nAllow: /",
+        )
+        self.assertTrue(scraper._check_robots_permission())
+
+        scraper.http.request.return_value = SimpleNamespace(
+            status=200,
+            data=b"<html>results</html>",
+        )
+        self.assertEqual(
+            scraper._fetch_html("https://example.test/results"),
+            "<html>results</html>",
+        )
+
+    def test_scraper_parses_applicant_fields_from_html(self):
+        scraper = GradCafeScraper("https://example.test")
+        html = """
+        <table>
+          <tr><th>University</th><th>Program</th></tr>
+          <tr>
+            <td>Johns Hopkins University</td>
+            <td>Computer Science PhD Fall 2026 Accepted GPA: 3.80
+              <a href="/result/123">Result</a>
+            </td>
+          </tr>
+        </table>
+        """
+
+        records = scraper.parse_admissions_data(html)
+
+        self.assertEqual(len(records), 1)
+        self.assertEqual(
+            records[0]["program"],
+            "Computer Science, Johns Hopkins University",
+        )
+        self.assertEqual(records[0]["url"], "https://example.test/result/123")
+        self.assertEqual(records[0]["status"], "Accepted")
+        self.assertEqual(records[0]["term"], "Fall 2026")
+        self.assertEqual(records[0]["degree"], "PhD")
+        self.assertEqual(records[0]["gpa"], 3.8)
+        self.assertEqual(scraper.parse_admissions_data(None), [])
+
+    def test_scraper_rejects_disallowed_robots_rules(self):
+        scraper = MagicMock()
+        scraper._check_robots_permission.return_value = False
+
+        with self.assertRaisesRegex(RuntimeError, "robots.txt"):
+            fetch_records_after_watermark(scraper, last_seen=0)
+
+        scraper._fetch_html.assert_not_called()
+
+    def test_scraper_follows_next_page_and_deduplicates_results(self):
+        scraper = MagicMock()
+        scraper._check_robots_permission.return_value = True
+        scraper._build_url.return_value = "https://example.test/page/1"
+        scraper._fetch_html.side_effect = ["page one", "page two"]
+        scraper.parse_admissions_data.side_effect = [
+            [
+                {"url": "https://example.test/result/5"},
+                {"url": "https://example.test/result/5"},
+                {"url": "https://example.test/result/not-an-id"},
+            ],
+            [{"url": "https://example.test/result/7"}],
+        ]
+        scraper._next_page_url.side_effect = [
+            "https://example.test/page/2",
+            None,
+        ]
+
+        with patch.object(incremental_scraper.time, "sleep") as sleep:
+            records, max_seen = fetch_records_after_watermark(
+                scraper,
+                last_seen=0,
+                max_pages=3,
+            )
+
+        self.assertEqual(
+            [record["url"] for record in records],
+            [
+                "https://example.test/result/5",
+                "https://example.test/result/7",
+            ],
+        )
+        self.assertEqual(max_seen, 7)
+        self.assertEqual(
+            [call.args[0] for call in scraper._fetch_html.call_args_list],
+            ["https://example.test/page/1", "https://example.test/page/2"],
+        )
+        sleep.assert_called_once()
+
+    def test_scraper_stops_for_missing_or_empty_pages(self):
+        for page_html, parsed_records in ((None, None), ("empty page", [])):
+            with self.subTest(page_html=page_html):
+                scraper = MagicMock()
+                scraper._check_robots_permission.return_value = True
+                scraper._build_url.return_value = "https://example.test/page/1"
+                scraper._fetch_html.return_value = page_html
+                scraper.parse_admissions_data.return_value = parsed_records
+
+                records, max_seen = fetch_records_after_watermark(
+                    scraper,
+                    last_seen=4,
+                )
+
+                self.assertEqual(records, [])
+                self.assertEqual(max_seen, 4)
+                if page_html is None:
+                    scraper.parse_admissions_data.assert_not_called()
+                else:
+                    scraper.parse_admissions_data.assert_called_once_with(page_html)
+
+    def test_scraper_does_not_wait_after_final_page(self):
+        scraper = MagicMock()
+        scraper._check_robots_permission.return_value = True
+        scraper._build_url.return_value = "https://example.test/page/1"
+        scraper._fetch_html.return_value = "page"
+        scraper.parse_admissions_data.return_value = [
+            {"url": "https://example.test/result/5"},
+        ]
+        scraper._next_page_url.return_value = "https://example.test/page/2"
+
+        with patch.object(incremental_scraper.time, "sleep") as sleep:
+            records, max_seen = fetch_records_after_watermark(
+                scraper,
+                last_seen=0,
+                max_pages=1,
+            )
+
+        self.assertEqual(len(records), 1)
+        self.assertEqual(max_seen, 5)
+        sleep.assert_not_called()
 
     def test_scrape_handler_reads_and_advances_watermark(self):
         connection = MagicMock()

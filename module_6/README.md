@@ -73,6 +73,8 @@ embedded in the application source. Then build and start the stack:
 docker compose up --build
 ```
 
+For an EC2 deployment, see [Container deployment](./docs/container-deployment.md#run-on-an-ec2-instance).
+
 The dashboard is at <http://localhost:8080/>. **Pull Data** publishes a
 `scrape_new_data` task; **Update Analysis** publishes a
 `recompute_analytics` task. Both buttons receive HTTP `202 Accepted`
@@ -256,8 +258,10 @@ python -m pytest
 
 The pytest configuration enforces 100% statement coverage for the
 queue-facing service modules: Flask app and publisher, worker consumer, shared
-queue topology, and database loader. The scraper's HTML parsing and network
-helpers are outside that focused coverage gate.
+queue topology, and database loader. The container test suite also exercises
+the worker scraper's watermark handling, pagination, duplicate filtering, and
+robots.txt denial behavior; the scraper's HTML parsing and live-network helpers
+remain outside that focused coverage gate.
 
 Run Pylint on the Module 6 service and database code:
 
@@ -277,8 +281,8 @@ if ($LASTEXITCODE -ne 0) { throw "Pylint failed with exit code $LASTEXITCODE" }
 The repository's `.github/workflows/module6.yml` workflow runs for Module 6
 pushes and pull requests, plus manual dispatch. It runs the 100% focused
 coverage gate, requires a 10.00 Pylint score, and validates the Compose
-configuration. The separate Module 5 CI workflow is scoped to Module 5 changes.
-The Docker Hub image publishing workflow is manually dispatched separately.
+configuration. The Docker Hub image publishing workflow is manually dispatched
+separately.
 
 ### Submission files
 
