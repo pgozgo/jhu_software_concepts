@@ -26,6 +26,7 @@
 /module_5/.coverage
 /module_5/src/jhu_gradcafe_module5.egg-info
 /module_6/.venv
+/module_7/.venv
 /module_6/py3-sphinx
 /module_6/.pytest_cache
 /module_6/**/__pycache__
@@ -67,3 +68,5 @@ module_6/src/jhu_gradcafe_module6.egg-info/PKG-INFO
 module_6/src/jhu_gradcafe_module6.egg-info/requires.txt
 module_6/src/jhu_gradcafe_module6.egg-info/SOURCES.txt
 module_6/src/jhu_gradcafe_module6.egg-info/top_level.txt
+.env
+.env.*

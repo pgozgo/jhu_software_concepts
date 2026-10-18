@@ -81,7 +81,7 @@ services:
       DATABASE_URL: postgresql://${DB_APP_USER:?Set DB_APP_USER in .env}:${DB_APP_PASSWORD:?Set DB_APP_PASSWORD in .env}@db:5432/${POSTGRES_DB:?Set POSTGRES_DB in .env}
       RABBITMQ_URL: amqp://${RABBITMQ_USER:?Set RABBITMQ_USER in .env}:${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD in .env}@rabbitmq:5672/%2F
     ports:
-      - "127.0.0.1:${WEB_HOST_PORT:-8081}:8080"
+      - "8080:8080"
     depends_on:
       db:
         condition: service_healthy
